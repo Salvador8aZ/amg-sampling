@@ -43,7 +43,7 @@ Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
 
 | Stage | Content | Status |
 |---|---|---|
-| A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | in progress |
+| A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done, awaiting review |
 | B | Exact enumeration (oracle); exact formulas | not started |
 | B′ | IID rejection sampler (first sampling baseline) | not started |
 | C | Reversal and switch moves | not started |
