@@ -1,0 +1,39 @@
+[project]
+name = "amg-sampling"
+version = "0.1.0.dev0"
+description = "Exact enumeration and sampling of aberration multigraph (AMG) rejoin configurations."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "Salvador8aZ" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+# The mathematical core is pure Python. Runtime dependencies are added only
+# when the stage that needs them begins (see README "Roadmap").
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6",
+    # Used only as an independent reference implementation in tests.
+    "networkx>=3",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amg_sampling"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
+markers = [
+    "slow: exhaustive checks that take more than a few seconds",
+]
