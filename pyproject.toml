@@ -33,6 +33,7 @@ packages = ["src/amg_sampling"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 markers = [
     "slow: exhaustive checks that take more than a few seconds",
