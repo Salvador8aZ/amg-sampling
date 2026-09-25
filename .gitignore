@@ -14,3 +14,6 @@ htmlcov/
 outputs/
 multirun/
 mlruns/
+
+# Third-party datasets are never committed (see docs/data.md)
+data/external/
