@@ -70,3 +70,41 @@ def all_perfect_matchings(num_ends: int) -> Iterator[tuple[tuple[int, int], ...]
                 yield ((v, w),) + tail
 
     yield from rec(tuple(range(num_ends)))
+
+
+def compositions(n: int) -> Iterator[tuple[int, ...]]:
+    """All ordered DSB distributions (b_1, ..., b_k) with every b_i >= 1 and sum n."""
+    if n == 0:
+        yield ()
+        return
+    for first in range(1, n + 1):
+        for rest in compositions(n - first):
+            yield (first,) + rest
+
+
+def reference_is_deranged(num_dsbs: int, rejoin_pairs) -> bool:
+    """No parallel edges in Ξ (a rejoin edge parallel to a DSB edge)."""
+    xi = exchange_multigraph(num_dsbs, rejoin_pairs)
+    return all(xi.number_of_edges(u, v) == 1 for u, v in xi.edges())
+
+
+def reference_is_proper(breaks: Sequence[int], rejoin_pairs) -> bool:
+    """Paper definition, on explicit multigraphs: connected AMG, no parallel edges in Ξ."""
+    return reference_is_deranged(sum(breaks), rejoin_pairs) and nx.is_connected(
+        amg_multigraph(breaks, rejoin_pairs)
+    )
+
+
+def reference_states(breaks: Sequence[int], space: str) -> set[tuple[tuple[int, int], ...]]:
+    """Brute-force state set as sorted pair tuples; ``space`` is 'all', 'deranged' or 'proper'."""
+    n = sum(breaks)
+    keep = {
+        "all": lambda pairs: True,
+        "deranged": lambda pairs: reference_is_deranged(n, pairs),
+        "proper": lambda pairs: reference_is_proper(breaks, pairs),
+    }[space]
+    return {
+        tuple(sorted(pairs))
+        for pairs in all_perfect_matchings(2 * n)
+        if keep(pairs)
+    }

@@ -14,26 +14,15 @@ from amg_sampling.core.statespace import (
     is_deranged,
     is_proper,
 )
-from tests.reference import all_perfect_matchings, amg_multigraph, exchange_multigraph
+from tests.reference import (
+    all_perfect_matchings,
+    amg_multigraph,
+    compositions,
+    exchange_multigraph,
+    reference_is_proper,
+)
+from tests.paper_tables import TABLE_1, TABLE_3
 from tests.strategies import states
-
-
-def compositions(n):
-    """All ordered DSB distributions (b_1, ..., b_k) with every b_i >= 1 and sum n."""
-    if n == 0:
-        yield ()
-        return
-    for first in range(1, n + 1):
-        for rest in compositions(n - first):
-            yield (first,) + rest
-
-
-def reference_is_proper(breaks, pairs):
-    """Paper definition, on explicit multigraphs: connected AMG, no parallel edges in Ξ."""
-    n = sum(breaks)
-    xi = exchange_multigraph(n, pairs)
-    no_parallel = all(xi.number_of_edges(u, v) == 1 for u, v in xi.edges())
-    return no_parallel and nx.is_connected(amg_multigraph(breaks, pairs))
 
 
 # -- deterministic -----------------------------------------------------------
@@ -86,39 +75,6 @@ def test_incompatible_sizes_raise():
 # -- paper counts, via brute force over all matchings ------------------------
 # These check the PROPER predicate (and cycle structures) against the paper.
 # They use a brute-force test helper, not a library enumerator.
-
-TABLE_1 = {
-    (2,): {"C2": 2},
-    (1, 1): {"C2": 2},
-    (3,): {"C3": 8},
-    (2, 1): {"C3": 8},
-    (1, 1, 1): {"C3": 8},
-    (4,): {"C4": 48, "2C2": 12},
-    (3, 1): {"C4": 48, "2C2": 12},
-    (2, 2): {"C4": 48, "2C2": 8},
-    (2, 1, 1): {"C4": 48, "2C2": 8},
-    (1, 1, 1, 1): {"C4": 48},
-}
-
-TABLE_3 = {
-    (5,): {"C5": 384, "C3+C2": 160},
-    (3, 2): {"C5": 384, "C3+C2": 144},
-    (3, 1, 1): {"C5": 384, "C3+C2": 144},
-    (2, 2, 1): {"C5": 384, "C3+C2": 128},
-    (2, 1, 1, 1): {"C5": 384, "C3+C2": 96},
-    (1, 1, 1, 1, 1): {"C5": 384},
-    (6,): {"C6": 3840, "3C2": 120, "C4+C2": 1440, "2C3": 640},
-    (5, 1): {"C6": 3840, "3C2": 120, "C4+C2": 1440, "2C3": 640},
-    (3, 3): {"C6": 3840, "3C2": 120, "C4+C2": 1440, "2C3": 576},
-    (4, 2): {"C6": 3840, "3C2": 96, "C4+C2": 1344, "2C3": 640},
-    (4, 1, 1): {"C6": 3840, "3C2": 96, "C4+C2": 1344, "2C3": 640},
-    (3, 2, 1): {"C6": 3840, "3C2": 96, "C4+C2": 1344, "2C3": 576},
-    (2, 2, 2): {"C6": 3840, "3C2": 64, "C4+C2": 1152, "2C3": 640},
-    (3, 1, 1, 1): {"C6": 3840, "3C2": 48, "C4+C2": 1152, "2C3": 576},
-    (2, 2, 1, 1): {"C6": 3840, "3C2": 64, "C4+C2": 1152, "2C3": 512},
-    (2, 1, 1, 1, 1): {"C6": 3840, "C4+C2": 768, "2C3": 384},
-}
-
 
 def proper_distribution(breaks):
     theta = InitialConfiguration(breaks)
