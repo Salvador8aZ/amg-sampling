@@ -45,12 +45,12 @@ Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
 | Stage | Content | Status |
 |---|---|---|
 | A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done |
-| B | Exact enumeration (oracle); exact formulas | done, awaiting review |
-| B′ | IID rejection sampler (first sampling baseline) | not started |
-| C | Reversal and switch moves | not started |
-| D | Small-n transition-graph laboratory | not started |
-| E | MCMC (only after the state space and proposal kernel are established) | not started |
-| F | Hydra configuration, MLflow tracking | not started |
+| B | Exact enumeration (oracle); exact formulas (PROPER recursion is O(3^k) in the number of chromosomes; see `exact.md` §5) | done |
+| C | IID uniform and rejection sampling (first sampling baseline) | in progress |
+| D | Reversal and switch moves | not started |
+| E | Small-n transition-graph laboratory | not started |
+| F | MCMC (only after the state space and proposal kernel are established) | not started |
+| G | Hydra configuration, MLflow tracking | not started |
 | later | Patient-specific constraints; biological weights; ABC-SMC; quantum experiments | not started |
 
 Validation hierarchy: exact enumeration → exact formulas → IID rejection

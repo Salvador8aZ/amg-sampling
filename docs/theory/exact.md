@@ -118,6 +118,15 @@ recursion gives lemma 12, i.e. Möbius inversion over set partitions with
 VERIFIED: agrees with enumeration on every layout with n ≤ 6, on five layouts
 with n = 7, and on every row of tables 1 and 3.
 
+**Known performance limitation (recorded, not addressed).** The recursion
+visits every pair (subset, sub-subset) of chromosomes, which is `O(3^k)` in the
+number of chromosomes `k`. At n = 80 it takes about 0.1 s for k = 10 and
+about 76 s for k = 16, and it is infeasible for k ≳ 20 (e.g. Θ(80,(1,…,1))).
+The cost does not depend on `n` for `num_proper_states`. A mathematically safe
+improvement exists but has deliberately not been implemented yet: the counts
+depend only on the multiset of block sizes, so results could be memoised by
+that multiset.
+
 **Facts derived from the recursion or definitions:**
 
 - **P1 (PROVED).** `|PROPER(Θ)| ≤ |DERANGED| = κ'(n)`. Equality holds iff no
