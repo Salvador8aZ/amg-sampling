@@ -24,8 +24,9 @@ Given `k` chromosomes carrying a total of `n` double-strand breaks (DSBs), the
 3. sample them for large `n` (patients may have 80+ DSBs),
 4. estimate the induced distribution over cycle structures.
 
-See [`docs/theory/representation.md`](docs/theory/representation.md) for the
-mathematical representation used by the code.
+Theory notes: [`representation.md`](docs/theory/representation.md) (data model,
+state spaces) and [`exact.md`](docs/theory/exact.md) (exact counts and
+cycle-structure distributions).
 
 ## Development
 
@@ -43,8 +44,8 @@ Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
 
 | Stage | Content | Status |
 |---|---|---|
-| A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done, awaiting review |
-| B | Exact enumeration (oracle); exact formulas | not started |
+| A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done |
+| B | Exact enumeration (oracle); exact formulas | done, awaiting review |
 | B′ | IID rejection sampler (first sampling baseline) | not started |
 | C | Reversal and switch moves | not started |
 | D | Small-n transition-graph laboratory | not started |
