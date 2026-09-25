@@ -221,3 +221,25 @@ with acceptance probability `|X_F(Θ)| / (f−1)!!`. For small `f` the target is
 enumerable (`iter_states(theta, space, fixed)`). The tests compare state
 frequencies against it and check the enumeration against filtering the
 full enumeration, for every layout with n ≤ 4.
+
+## 10. Using exact DERANGED results as a reference for PROPER
+
+For large `n` and `k ≥ 2`, no exact PROPER cycle distribution is available
+(exact.md §5 limits), but `|PROPER(Θ)|` often is. The exact scalar summaries
+of DERANGED (exact.md §8) then give a reference with a guaranteed error.
+
+**Lemma (PROVED).** Let `P ⊆ D` be finite and non-empty, and let `μ_P`, `μ_D`
+be the uniform distributions on them. Then for every event `A`,
+
+    |μ_P(A) − μ_D(A)| ≤ TV(μ_P, μ_D) = 1 − |P|/|D|.
+
+*Proof.* `μ_P(x) − μ_D(x)` equals `1/|P| − 1/|D| ≥ 0` on `P` and `−1/|D|` on
+`D∖P`. The total variation is the sum of the positive parts,
+`|P|(1/|P| − 1/|D|) = 1 − |P|/|D|`. For any `A`, `μ_P(A) − μ_D(A)` lies between
+minus the sum of the negative parts and the sum of the positive parts. Both
+sums equal the total variation. ∎
+
+With `P = PROPER(Θ)` and `D = DERANGED`, the report prints the DERANGED
+summaries together with this bound. For Θ(5,(20,20,20,20,20)) the bound is
+about `8·10⁻²²`. When the bound is large (e.g. Θ(80,(1,…,1)), 0.84) the DERANGED
+reference is still printed with its bound, but it is not informative.

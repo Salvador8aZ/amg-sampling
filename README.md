@@ -1,64 +1,213 @@
 # amg-sampling
 
-Exact enumeration and sampling of aberration multigraph (AMG) rejoin
-configurations.
-
-The mathematical framework follows
+Exact combinatorics and uniform sampling of **aberration multigraphs (AMGs)**,
+the graph model of chromosome rearrangements used by
 
 > S. Sheth, J. Arsuaga, R. Sazdanovic (2026). *Characterizing cancer chromosome
 > aberration pathways using multigraphs.* J. Phys. A: Math. Theor. **59** 115601.
 > https://doi.org/10.1088/1751-8121/ae4d8f
 
-The repository `Salvador8aZ/aberration_multigraph` (a copy of
-`siddharthsheth/aberration_multigraph`) is used only as a reference
-implementation: its validated numerical results serve as ground truth, but its
-API and data model are not reused.
+The software reproduces the paper's published counts. It extends them from
+small cases, where every configuration can be listed, to realistic sizes
+(80+ double-strand breaks) by exact formulas and independent random
+sampling. It also compares a patient's observed rearrangements with a
+uniform combinatorial null model.
 
-## Scientific goal
+## The scientific question
 
-Given `k` chromosomes carrying a total of `n` double-strand breaks (DSBs), the
-`2n` free DSB ends are paired by a *rejoin matching*. The project aims to
+- A **double-strand break (DSB)** cuts a chromosome and leaves two **free ends**.
+- With `n` DSBs on `k` chromosomes there are `2n` free ends. Repair pairs them
+  up: a **rejoin matching**. An end rejoined to its original partner is a
+  correct repair; any other pairing is an exchange.
+- The **initial configuration** `Θ(k, (b₁,…,b_k))` records how many DSBs each
+  chromosome has. An **AMG** is Θ together with one rejoin matching.
+- Following DSB → rejoin → DSB → … around an AMG gives closed loops, its
+  **exchange cycles**. The multiset of their lengths is the **cycle structure**,
+  e.g. `C10` (one cycle through all 10 DSBs) or `C8+C2`. The cycle structure
+  describes the exchange pathway: many small cycles suggest independent
+  events, and one long cycle a coordinated one (e.g. chromoplexy).
+- A **proper** AMG (paper §3) has no correctly repaired DSB and is connected.
 
-1. represent AMG configurations efficiently,
-2. enumerate them exactly for small `n` (ground truth),
-3. sample them for large `n` (patients may have 80+ DSBs),
-4. estimate the induced distribution over cycle structures.
+Sequencing observes some rejoins (junctions) but usually not all. The question
+is then: *which exchange pathways are compatible with the observations, and
+how unusual is what we see compared with a model in which every compatible
+AMG is equally likely?*
 
-Theory notes: [`representation.md`](docs/theory/representation.md) (data model,
-state spaces), [`exact.md`](docs/theory/exact.md) (exact counts and
-cycle-structure distributions) and [`sampling.md`](docs/theory/sampling.md)
-(IID uniform sampling).
+The number of AMGs is `(2n−1)!!`: about 6.5·10⁸ for n = 10 and 7·10¹⁸⁶ for
+n = 100. Listing them all works only for n ≲ 8, so larger problems need
+formulas or sampling.
+
+## What the software does
+
+| Capability | How |
+|---|---|
+| **Exact combinatorial analysis** | Enumerates every AMG for small n, and applies the paper's theorems plus derived formulas and recursions for any n. Reproduces every row of the paper's tables 1–3. |
+| **Uniform IID sampling** | Draws uniform random rejoin matchings and keeps those in the chosen state space (ALL, DERANGED or PROPER). The samples are exactly uniform and independent: no Markov chain, burn-in or autocorrelation. Validated against the exact results, including at n = 80. |
+| **Synthetic configurations** | Any Θ, e.g. five chromosomes with 20 DSBs each. |
+| **Sheth patient reconstruction** | Loads the dataset used in the paper, splits each patient into chromosome components, and builds Θ and the observed rejoins with provenance. Reproduces the paper's case study (patient P05-1657: 945 pathways, table 2). |
+| **Patient vs null comparison** | Compares the patient's observed rejoins and the cycle structures compatible with them against the uniform combinatorial null. Exact values are used where feasible, sampled estimates with standard errors otherwise. |
+
+## Installation
+
+Requires [uv](https://docs.astral.sh/uv/) (`brew install uv`, or see its
+installation page) and Python ≥ 3.11 (uv can install it).
+
+```bash
+git clone https://github.com/Salvador8aZ/amg-sampling.git   # once published
+cd amg-sampling
+uv sync --extra plots        # installs dependencies (+ matplotlib for figures)
+```
+
+The patient data are **not** included; see [docs/data.md](docs/data.md).
+In short:
+
+```bash
+git clone https://github.com/siddharthsheth/aberration_multigraph ../aberration_multigraph
+uv run amg-sampling import-data ../aberration_multigraph/data/nihms.csv
+```
+
+## Quick start
+
+```bash
+# 1. Run the test suite (about 1 minute; patient tests skip if the data are absent)
+uv run pytest
+
+# 2. A synthetic configuration: Θ(5,(20,20,20,20,20)), 100 DSBs, 200 free ends
+uv run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
+    statespace=proper sampler=iid sampler.num_samples=100000 analysis=distribution seed=42
+
+# 3. List the patients in the Sheth dataset, then inspect the demonstration patient
+uv run amg-sampling patients
+uv run amg-sampling patients --patient P05-1657
+
+# 4. The demonstration patient: chromosomes 8 and 12 of P05-1657 vs the uniform null
+uv run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
+    statespace=proper sampler=iid analysis=observed seed=42
+
+# 5. The same, exact results only (no sampling)
+uv run amg-sampling problem=patient analysis=observed sampler=exact
+```
+
+Command 2 takes about 15 s and command 4 about 3 s on a laptop.
+[docs/demo.md](docs/demo.md) is a 5–10 minute walkthrough of these commands.
+
+## Configuration
+
+Experiments are configured with [Hydra](https://hydra.cc). Four independent
+groups live in `src/amg_sampling/conf/`, and any key can be overridden on the
+command line.
+
+| Group | Options | Main keys |
+|---|---|---|
+| `problem` | `configuration` (default), `patient` | `problem.breaks=[…]`; `problem.patient_id`, `problem.chromosomes=[…]` |
+| `statespace` | `proper` (default), `deranged`, `all` | — |
+| `sampler` | `iid` (default), `exact` | `sampler.num_samples` |
+| `analysis` | `distribution` (default), `observed`, `rejoin_probability` | `analysis.confidence` |
+| top level | — | `seed`, `data.sheth_csv`, `output.plots`, `output.top` |
+
+- **`distribution`**: cycle-structure, number-of-cycles and largest-cycle
+  distributions under the null, with exact references where available.
+- **`observed`** (patients): what the observed rejoins determine, the cycle
+  structures of AMGs consistent with them, and their probability under the null.
+- **`rejoin_probability`** (patients): the null probability of each observed
+  rejoin, and of all of them together.
+
+## Output
+
+Every run prints a report and writes to `outputs/<date>/<time>/`:
+
+| File | Content |
+|---|---|
+| `config.yaml` | the fully resolved configuration (Hydra also keeps `.hydra/`) |
+| `results.json` | every reported number, exact values as fractions, and data provenance |
+| `cycle_distribution.csv` / `null_cycle_distribution.csv` | cycle structures: exact and sampled probabilities, standard errors |
+| `cycle_count_distribution.csv`, `largest_cycle_distribution.csv` | scalar summaries (analysis=distribution) |
+| `completion_distribution.csv`, `observed_cycle_structures.csv` | completions of the observed rejoins vs the null (analysis=observed) |
+| `rejoin_probabilities.csv` | each observed rejoin: genomic ends, source CSV line, null probability |
+| `*.png` | figures (only with the `plots` extra) |
+
+## Interpretation: combinatorial null vs biological probability
+
+All probabilities are computed under a **uniform combinatorial null model**.
+Every AMG in the chosen state space and compatible with Θ is taken as equally
+likely. They answer: *"if every admissible rejoining were equally likely, how
+often would we see this?"*
+
+They are **not biological probabilities**. Real repair favours nearby ends,
+depends on nuclear architecture, and is shaped by selection, and none of this
+is modelled. A small null probability means the observation is unusual
+*relative to uniform rejoining*. It does not measure how likely the
+rearrangement is in a cell.
+
+## Project status
+
+**Implemented**
+- Exact mathematics: the AMG representation, exact enumeration, the paper's
+  theorems, and derived formulas (exact PROPER distributions, cycle summaries
+  for any n).
+- IID uniform sampling (rejection), validated at the state, distribution and
+  acceptance-rate levels, including at n = 80.
+- Hydra experiments with saved JSON/CSV results and optional figures.
+- Patient prototype: Sheth dataset import, conversion with provenance,
+  reproduction of the paper's case study, and patient-vs-null comparison.
+
+**Planned (not implemented)**
+- Reversal / 2-switch move analysis (the paper's reversal networks)
+- A weighted biological rejoining model
+- MCMC
+- ABC-SMC
+- MLflow experiment tracking
+- Quantum-circuit (PennyLane) experiments
+
+## Limitations
+
+- The exact PROPER recursion costs `O(3^k)` in the number of chromosomes `k`.
+  Exact PROPER totals are computed for k ≤ 12, and full distributions for
+  k ≤ 6 and n ≤ 30. Beyond that, sampling (always available) is used.
+- Exact enumeration of the completions of observed rejoins is limited to
+  about 2·10⁶ completions (16 unmatched ends). Beyond that they are sampled.
+- The strand → DSB-end convention follows the reference implementation. It
+  reproduces the paper, but its biological meaning is not independently checked.
+- Patients are analysed one chromosome component at a time, assuming no
+  exchange between chromosomes that no observed junction links (paper §7.1).
+
+## Documentation
+
+- [docs/demo.md](docs/demo.md): supervisor demonstration script.
+- [docs/data.md](docs/data.md): dataset provenance, licensing and conversion.
+- [docs/theory/representation.md](docs/theory/representation.md): data model and state spaces.
+- [docs/theory/exact.md](docs/theory/exact.md): exact counts, the paper's
+  theorems, and documented differences from the paper.
+- [docs/theory/sampling.md](docs/theory/sampling.md): uniform sampling,
+  rejection, IID proofs, and fixed-rejoin completion.
+
+Results in the theory notes are labelled PROVED, VERIFIED(n ≤ N) or CONJECTURE.
+
+## Repository layout
+
+```
+src/amg_sampling/
+  core/        Θ, rejoin matchings, cycle structures, state spaces (pure Python)
+  exact/       enumeration, formulas, summary distributions
+  samplers/    uniform matchings, completions, IID rejection sampling
+  data/sheth/  dataset records, loader, conversion to Θ + observed rejoins
+  analysis/    null-model analyses, report, JSON/CSV output, figures
+  conf/        Hydra configuration groups
+  app.py       Hydra application;  cli.py  command-line entry point
+tests/         pytest suite (exact oracles, statistical tests, CLI smoke tests)
+benchmarks/    sampling throughput at n = 80
+docs/          demo, data and theory notes
+```
 
 ## Development
 
-Requires [uv](https://docs.astral.sh/uv/).
-
 ```bash
-uv sync
-uv run pytest
-uv run python benchmarks/iid_n80.py   # IID sampling throughput at n = 80
+uv run pytest -m "not slow"                  # fast subset (~20 s)
+HYPOTHESIS_PROFILE=ci uv run pytest          # as in CI (derandomised)
+uv run python benchmarks/iid_n80.py          # IID sampling throughput at n = 80
 ```
-
-Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
-`HYPOTHESIS_PROFILE=ci uv run pytest`.
-
-## Roadmap
-
-| Stage | Content | Status |
-|---|---|---|
-| A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done |
-| B | Exact enumeration (oracle); exact formulas (PROPER recursion is O(3^k) in the number of chromosomes; see `exact.md` §5) | done |
-| C | IID uniform and rejection sampling (first sampling baseline) | done, awaiting review |
-| D | Reversal and switch moves | not started |
-| E | Small-n transition-graph laboratory | not started |
-| F | MCMC (only after the state space and proposal kernel are established) | not started |
-| G | Hydra configuration, MLflow tracking | not started |
-| later | Patient-specific constraints; biological weights; ABC-SMC; quantum experiments | not started |
-
-Validation hierarchy: exact enumeration → exact formulas → IID rejection
-sampler → MCMC. For small `n` all applicable methods must agree on the
-cycle-structure distribution.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT; see [LICENSE](LICENSE). The Sheth / Baca et al. dataset is not covered by
+this license and is not distributed here.

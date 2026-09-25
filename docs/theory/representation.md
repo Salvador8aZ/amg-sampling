@@ -146,6 +146,8 @@ exhaustively for small `n`, and labelled before any code depends on them.
 5. The set of ring fragments is invariant under reversals (an argument was
    sketched during planning; it will be written up with the reversal move).
 6. IID rejection acceptance rates: `|DERANGED| / |ALL| → e^{−1/2}` for large `n`,
-   and `|PROPER| / |ALL| ≈ √(π/(4n))` for Θ(n, (1, …, 1)).
+   and `|PROPER| / |ALL| ≈ √(π/(4n))` for Θ(n, (1, …, 1)). Still unproved; exact
+   values are computed instead (`theoretical_acceptance`), e.g. 0.6046 and
+   0.0992 at n = 80.
 7. Uniform IID sampling from `ALL` by shuffling the `2n` ends and pairing
-   consecutive ones (each matching arises from exactly `2ⁿ n!` orderings).
+   consecutive ones. **Now PROVED** in [`sampling.md`](sampling.md) §1.
