@@ -48,3 +48,116 @@ VERIFIED(n ≤ 4): mapping all `(2n)!` orderings gives every matching exactly
   `Random.random()`. `shuffle` depends on `getrandbits` and `_randbelow`,
   whose use may change between Python versions. **Sequences are therefore
   only guaranteed reproducible on the same Python implementation and version.**
+
+## 2. Rejection preserves uniformity
+
+**Algorithm** (`sample_state`, `iter_samples`). Repeatedly draw `r` uniformly
+from ALL and return the first draw that lies in the state space `X`.
+
+**Theorem (PROVED).** The returned state is uniform on `X`.
+
+*Proof.* Let `Y_1, Y_2, …` be independent uniform draws from ALL and
+`τ = min{t : Y_t ∈ X}` (finite with probability 1 when `X ≠ ∅`). For `x ∈ X`,
+
+    P(Y_τ = x) = Σ_t P(Y_1 ∉ X)^{t−1} P(Y_t = x) = (1/|ALL|) / (|X|/|ALL|) = 1/|X|. ∎
+
+## 3. Accepted samples are IID
+
+**Theorem (PROVED).** If proposals `Y_1, Y_2, …` are IID and each is accepted
+iff it lies in the fixed set `X`, then the accepted proposals
+`Z_1, Z_2, …` are IID with law `P(Y = x | Y ∈ X)`.
+
+*Proof.* The acceptance times `τ_1 < τ_2 < …` split the proposal sequence into
+blocks `(Y_{τ_{j−1}+1}, …, Y_{τ_j})`. Each block is determined by the
+proposals inside it. Because the proposals are IID and the stopping rule
+("stop at the first member of `X`") is the same for every block, the blocks
+are IID. `Z_j = Y_{τ_j}` is a fixed function of block `j`, so the `Z_j` are
+IID. Each has the law computed in §2. ∎
+
+With uniform proposals the law is uniform on `X`. There is no Markov chain:
+no burn-in, no autocorrelation, no mixing time. The independence test in
+`tests/test_rejection.py` (non-overlapping consecutive pairs are uniform on
+`X × X`) is only a sanity check; the argument above is what establishes independence.
+
+In practice "independent" means independent up to the quality of the
+pseudo-random generator (§1).
+
+## 4. Acceptance probability
+
+    acceptance(X) = |X| / |ALL|,   |ALL| = (2n−1)!!
+
+`theoretical_acceptance(theta, space)` returns this as a `Fraction`:
+
+| X | Numerator | Source | Cost |
+|---|---|---|---|
+| ALL | `(2n−1)!!` | theorem 1 | O(n) |
+| DERANGED | `κ'(n)` | theorem 5; layout-independent (exact.md §1) | O(n) |
+| PROPER, all `b_i = 1` | `2^{n−1}(n−1)!` (n ≥ 2) | lemma 14; proof below | O(n) |
+| PROPER, general Θ | `num_proper_states(Θ)` | derived recursion (exact.md §5) | O(3^k); refused above `max_chromosomes` (default 12) |
+
+**PROPER with one DSB per chromosome (PROVED).** If every chromosome has one
+DSB, each chromosome's two ends are the two ends of one DSB, so they lie on
+the same exchange cycle. The rejoin edges of a cycle stay inside the cycle.
+So the chromosomes of different cycles are never linked, and the AMG is
+connected iff there is exactly one cycle. A single cycle `C_n` (n ≥ 2) is
+deranged. Hence `PROPER = {C_n states}`, of size `2^{n−1}(n−1)!` (corollary 3).
+The paper states the count (lemma 14). This argument also shows the
+states are exactly the single-cycle ones. Checked against the recursion for n ≤ 10.
+
+**Empty state spaces.** DERANGED and PROPER are empty iff `n = 1`, since for
+`n ≥ 2` every `C_n` state is proper (exact.md §5, P3). The sampler refuses an
+empty space instead of looping forever. `max_proposals` optionally bounds the
+work per sample.
+
+**Empirical acceptance** (`SamplingStats`: `proposals`, `accepted`, `rejected`,
+`acceptance_rate`) is kept separate from the theoretical value. Because the
+sampler stops after a fixed number `a` of acceptances, the number of
+rejections is negative binomial with mean `a(1−p)/p` and variance
+`a(1−p)/p²`. The acceptance tests use that standard error. (With a fixed
+number `N` of proposals, the binomial standard error `√(p(1−p)/N)` would
+apply instead.)
+
+The expected number of proposals per accepted sample is `1/p`.
+
+## 5. ALL, DERANGED and PROPER as sampling targets
+
+The same proposal distribution (uniform on ALL) serves all three targets. Only
+the acceptance test changes:
+
+- **Uniform on ALL** includes repaired DSBs (`C₁`) and disconnected AMGs. Its
+  cycle-structure law is theorem 2, and its cycle-count law is Ewens(θ = ½)
+  (exact.md §7.3).
+- **Uniform on DERANGED** is ALL conditioned on "no `C₁`". Its cycle-structure
+  law is theorem 2 restricted to partitions without 1s, the same for every Θ.
+- **Uniform on PROPER(Θ)** also conditions on connectivity. Its law depends on
+  Θ and comes from the recursion (exact.md §5) or from enumeration.
+
+## 6. Exact references for validation
+
+| Level | Reference |
+|---|---|
+| individual states | enumeration (`iter_states`), for spaces up to a few hundred states |
+| cycle structure | theorem 2 (ALL, DERANGED, any n); recursion (PROPER; moderate n and k); enumeration (n ≤ 7) |
+| number of cycles, ALL | `cycle_count_all`; Ewens(½) mean and variance (§7) |
+| acceptance rate | `theoretical_acceptance` |
+
+Statistical checks use Pearson's χ² goodness-of-fit, with categories of
+expected count < 5 pooled. The upper tail is computed from the regularised
+incomplete gamma function in `tests/stats.py`, which is itself tested against
+known quantiles and a negative control. Each check uses a fixed seed and
+significance level `α = 10⁻³`. The tests are deterministic, and for a random
+seed each would fail with probability about `α` if the sampler were correct.
+
+## 7. Why IID rejection is preferable to MCMC for uniform targets
+
+When `acceptance(X)` is not tiny, rejection sampling gives exact, independent
+draws with a cost of `1/acceptance` proposals each, with no burn-in, no
+autocorrelation, and no need to show that a chain is irreducible or mixes
+quickly. MCMC is only worth its complications when:
+
+1. acceptance is too small, e.g. when many constraints (patient data) are imposed; or
+2. the target is not uniform (biological weights), where plain rejection
+   from uniform proposals no longer gives the right distribution.
+
+For the uniform targets studied here, the IID sampler is the baseline that
+any MCMC sampler must reproduce.
