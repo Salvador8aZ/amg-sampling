@@ -25,8 +25,9 @@ Given `k` chromosomes carrying a total of `n` double-strand breaks (DSBs), the
 4. estimate the induced distribution over cycle structures.
 
 Theory notes: [`representation.md`](docs/theory/representation.md) (data model,
-state spaces) and [`exact.md`](docs/theory/exact.md) (exact counts and
-cycle-structure distributions).
+state spaces), [`exact.md`](docs/theory/exact.md) (exact counts and
+cycle-structure distributions) and [`sampling.md`](docs/theory/sampling.md)
+(IID uniform sampling).
 
 ## Development
 
@@ -35,6 +36,7 @@ Requires [uv](https://docs.astral.sh/uv/).
 ```bash
 uv sync
 uv run pytest
+uv run python benchmarks/iid_n80.py   # IID sampling throughput at n = 80
 ```
 
 Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
@@ -46,7 +48,7 @@ Hypothesis profiles: `dev` (default) and `ci` (derandomized). Select with
 |---|---|---|
 | A | Project skeleton; initial configuration Θ; rejoin matchings; cycle structures; state spaces | done |
 | B | Exact enumeration (oracle); exact formulas (PROPER recursion is O(3^k) in the number of chromosomes; see `exact.md` §5) | done |
-| C | IID uniform and rejection sampling (first sampling baseline) | in progress |
+| C | IID uniform and rejection sampling (first sampling baseline) | done, awaiting review |
 | D | Reversal and switch moves | not started |
 | E | Small-n transition-graph laboratory | not started |
 | F | MCMC (only after the state space and proposal kernel are established) | not started |

@@ -282,6 +282,12 @@ From the rising-factorial identity `Σ_c [n c] y^c = y(y+1)⋯(y+n−1)` with `y
 - **Mean:**
 
       E[c | ALL] = Σ_{i=0}^{n−1} 1/(2i+1) = H_{2n} − H_n/2 ~ (1/2) log n + log 2 + γ/2.
+- **Variance** (independent Bernoulli terms add their variances):
+
+      Var[c | ALL] = Σ_{i=0}^{n−1} p_i(1−p_i) = Σ_{i=0}^{n−1} 2i/(2i+1)²,   p_i = 1/(2i+1).
+
+  At n = 80 the mean and variance equal those of the exact distribution
+  `cycle_count_all(80, ·)` as `Fraction`s (`test_ewens_moments_match_exact_distribution`).
 
 **COMPUTATIONAL VERIFICATION.** The exact mean equals the enumerated mean as a
 `Fraction` for n ≤ 6 (e.g. n = 6: 1.8782… vs `H_6` = 2.45). It also equals the
@@ -308,7 +314,36 @@ analogous closed form is claimed here.
    `c ≤ min(max bⱼ, ⌊n/2⌋)`. It is not an upper bound: Θ(4,(2,2,1,1)) has
    proper `3C₂` states. The existence claim is VERIFIED for every layout n ≤ 6.
 
-## 8. Summary: what depends on what
+## 8. Exact distributions of cycle summaries for any n (derived)
+
+Summing theorem 2 over all partitions is infeasible at n = 80 (`p(80)` is about
+1.6·10⁷). `exact/summaries.py` instead uses one decomposition.
+
+**Lemma (PROVED).** Let `L` be a set of allowed cycle lengths and `A(m)` the
+number of rejoin matchings of `m` DSBs whose cycle lengths all lie in `L`.
+Then `A(0) = 1` and
+
+    A(m) = Σ_{l ∈ L, l ≤ m} C(m−1, l−1) · 2^{l−1}(l−1)! · A(m−l).
+
+*Proof.* The cycle through DSB 0 has some length `l ∈ L`. Its other `l−1`
+DSBs are chosen in `C(m−1, l−1)` ways, and a single cycle through `l` given
+DSBs can be formed in `2^{l−1}(l−1)!` ways (the bijection of §7.2). The
+remaining `m−l` DSBs carry any matching with lengths in `L`, and these
+choices determine the matching uniquely. ∎
+
+ALL uses `L = {1, 2, …}` and DERANGED uses `L = {2, 3, …}`. From this:
+
+- **number of cycles:** the same recursion with a cycle counter;
+- **largest cycle:** `#{max ≤ L} = A(n)` with lengths up to `L`, then differences;
+- **number of `C_ℓ` cycles:** exactly `m` of them gives
+  `C(n, mℓ) · (mℓ)!/((ℓ!)^m m!) · (2^{ℓ−1}(ℓ−1)!)^m · A_{≠ℓ}(n − mℓ)`.
+
+VERIFIED: all three equal theorem 2 aggregated over partitions for n ≤ 18
+(both spaces) and enumeration for n ≤ 6. The cycle count equals
+`cycle_count_all` for n ≤ 80. These describe ALL and DERANGED only, and hence
+PROPER for Θ(1,(n)). They are **not** PROPER distributions for `k ≥ 2`.
+
+## 9. Summary: what depends on what
 
 | Quantity | Depends only on n | Depends on Θ |
 |---|---|---|

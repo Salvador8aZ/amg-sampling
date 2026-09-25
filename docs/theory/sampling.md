@@ -138,7 +138,7 @@ the acceptance test changes:
 |---|---|
 | individual states | enumeration (`iter_states`), for spaces up to a few hundred states |
 | cycle structure | theorem 2 (ALL, DERANGED, any n); recursion (PROPER; moderate n and k); enumeration (n ≤ 7) |
-| number of cycles, ALL | `cycle_count_all`; Ewens(½) mean and variance (§7) |
+| scalar summaries (number of cycles, largest cycle, number of `C_ℓ`), ALL and DERANGED, any n | `exact/summaries.py` (exact.md §8); Ewens(½) mean and variance for ALL (exact.md §7.3) |
 | acceptance rate | `theoretical_acceptance` |
 
 Statistical checks use Pearson's χ² goodness-of-fit, with categories of
@@ -161,3 +161,35 @@ quickly. MCMC is only worth its complications when:
 
 For the uniform targets studied here, the IID sampler is the baseline that
 any MCMC sampler must reproduce.
+
+## 8. Results at n = 80
+
+**Validation** (`tests/test_iid_n80.py`, 8 000 samples each, α = 10⁻³):
+- **Θ(1,(80)), PROPER (= DERANGED):** χ² tests of the number of cycles, the
+  largest cycle and the number of `C₂` against the exact distributions of §6
+  all pass.
+- **ALL:** the same tests plus the number of `C₁` pass. The sample mean and
+  variance of the number of cycles agree with the Ewens(½) values
+  `Σ 1/(2i+1)` and `Σ 2i/(2i+1)²` within 4 standard errors. The variance's
+  standard error uses the exact fourth moment.
+
+**PROPER vs DERANGED at n = 80** (exact, from the recursion):
+
+| Θ | 1 − \|PROPER\|/\|DERANGED\| |
+|---|---|
+| Θ(2,(40,40)) | 7·10⁻²⁵ |
+| Θ(4,(20,…)) | 1·10⁻¹⁹ |
+| Θ(8,(10,…)) | 5·10⁻¹³ |
+| Θ(10,(8,…)) | 4·10⁻¹¹ |
+| Θ(80,(1,…,1)) | 0.836 (PROPER is the single-cycle states only) |
+
+When every chromosome carries several DSBs, uniform PROPER and uniform
+DERANGED are practically the same distribution at n = 80. The difference
+matters when many chromosomes carry one or two DSBs.
+
+**Throughput** (`benchmarks/iid_n80.py`, pure Python 3.11, Apple arm64): about 43 µs per
+proposal (≈ 23 000/s). Accepted samples per second: ALL ≈ 23 000;
+DERANGED/PROPER with several DSBs per chromosome ≈ 10 000–13 500; Θ(80,(1,…,1))
+≈ 1 700 (acceptance ≈ 0.099). A proposal's cost is about 55% shuffle and 30%
+matching validation, so a mutable, non-validating representation could at
+most roughly double throughput. This has not been done.
