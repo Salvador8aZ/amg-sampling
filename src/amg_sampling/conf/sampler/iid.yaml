@@ -1,0 +1,4 @@
+# IID uniform sampling by rejection (docs/theory/sampling.md).
+name: iid
+num_samples: 100000
+max_proposals_per_sample: 1000000

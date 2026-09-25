@@ -1,0 +1,2 @@
+# Exact results only (enumeration / formulas); fails if none is feasible.
+name: exact

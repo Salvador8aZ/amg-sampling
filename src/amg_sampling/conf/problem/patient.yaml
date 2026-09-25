@@ -1,0 +1,6 @@
+# One chromosome component of a patient in the Sheth dataset.
+kind: patient
+patient_id: P05-1657
+# Chromosomes to analyse: a union of components linked by observed junctions.
+# null selects the patient's only component (an error lists them if there are several).
+chromosomes: [8, 12]

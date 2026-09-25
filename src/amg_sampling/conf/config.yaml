@@ -1,0 +1,25 @@
+# Top-level experiment configuration. Each group is chosen independently, e.g.
+#   amg-sampling problem=patient statespace=proper sampler=iid analysis=observed
+defaults:
+  - problem: configuration
+  - statespace: proper
+  - sampler: iid
+  - analysis: distribution
+  - _self_
+
+seed: 42
+
+data:
+  # Path to the Sheth / Baca et al. CSV (not distributed; see docs/data.md).
+  # Relative paths are resolved against the directory the command is run from.
+  sheth_csv: ${oc.env:AMG_SHETH_DATA,data/external/nihms.csv}
+
+output:
+  plots: true   # needs the optional 'plots' extra (matplotlib); skipped otherwise
+  top: 12       # rows of the cycle-structure table printed in the terminal
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

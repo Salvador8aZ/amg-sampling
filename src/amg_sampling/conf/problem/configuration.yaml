@@ -1,0 +1,3 @@
+# A synthetic initial configuration Θ(k, (b_1, ..., b_k)).
+kind: configuration
+breaks: [4, 4, 4]   # DSBs on each chromosome; e.g. problem.breaks='[20,20,20,20,20]'
