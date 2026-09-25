@@ -3,6 +3,10 @@
 Draw ``r`` uniformly from ALL (:func:`sample_matching`); return it if it lies
 in the requested state space, otherwise draw again independently. Accepted
 states are IID and uniform on the state space (``docs/theory/sampling.md`` §2).
+
+With ``fixed`` rejoins, proposals are drawn uniformly from the completions of
+``fixed`` instead (:func:`sample_completion`), so accepted states are uniform
+on ``{states of the space containing every fixed edge}`` (§9).
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ from fractions import Fraction
 from typing import Iterator
 
 from amg_sampling.core.configuration import InitialConfiguration
-from amg_sampling.core.matching import RejoinMatching
+from amg_sampling.core.matching import PartialMatching, RejoinMatching
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.exact.formulas import (
     num_all_states,
@@ -21,7 +25,7 @@ from amg_sampling.exact.formulas import (
     num_proper_states,
     num_single_cycle_states,
 )
-from amg_sampling.samplers.uniform import sample_matching
+from amg_sampling.samplers.uniform import sample_completion, sample_matching
 
 
 @dataclass
@@ -48,18 +52,22 @@ def sample_state(
     *,
     stats: SamplingStats | None = None,
     max_proposals: int | None = None,
+    fixed: PartialMatching | None = None,
 ) -> RejoinMatching:
     """One state drawn uniformly from ``space(Θ)`` by rejection from ALL.
 
-    ``stats``, if given, is updated in place. ``max_proposals`` bounds the
-    number of proposals for this call; ``RuntimeError`` is raised if it is
-    exhausted.
+    With ``fixed``, the state is uniform among states of ``space(Θ)`` that
+    contain every fixed edge. ``stats``, if given, is updated in place.
+    ``max_proposals`` bounds the number of proposals for this call;
+    ``RuntimeError`` is raised if it is exhausted.
     """
     _check_nonempty(theta, space)
+    if fixed is not None and fixed.num_ends != theta.num_ends:
+        raise ValueError(f"Fixed rejoins are on {fixed.num_ends} ends but Θ{theta.breaks} has {theta.num_ends}.")
     n = theta.num_dsbs
     proposals = 0
     while max_proposals is None or proposals < max_proposals:
-        r = sample_matching(n, rng)
+        r = sample_matching(n, rng) if fixed is None else sample_completion(fixed, rng)
         proposals += 1
         accepted = space.contains(theta, r)
         if stats is not None:
@@ -78,13 +86,17 @@ def iter_samples(
     *,
     stats: SamplingStats | None = None,
     max_proposals_per_sample: int | None = None,
+    fixed: PartialMatching | None = None,
 ) -> Iterator[RejoinMatching]:
-    """Yield ``count`` IID uniform states of ``space(Θ)`` (unbounded if ``count`` is None)."""
+    """Yield ``count`` IID uniform states of ``space(Θ)`` (unbounded if ``count`` is None).
+
+    With ``fixed``, states are uniform among those containing every fixed edge.
+    """
     _check_nonempty(theta, space)
     produced = 0
     while count is None or produced < count:
         yield sample_state(
-            theta, space, rng, stats=stats, max_proposals=max_proposals_per_sample
+            theta, space, rng, stats=stats, max_proposals=max_proposals_per_sample, fixed=fixed
         )
         produced += 1
 

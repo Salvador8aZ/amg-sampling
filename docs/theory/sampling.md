@@ -193,3 +193,31 @@ DERANGED/PROPER with several DSBs per chromosome ≈ 10 000–13 500; Θ(80,(1,�
 ≈ 1 700 (acceptance ≈ 0.099). A proposal's cost is about 55% shuffle and 30%
 matching validation, so a mutable, non-validating representation could at
 most roughly double throughput. This has not been done.
+
+## 9. Conditional completion: fixed (observed) rejoins
+
+A `PartialMatching` `F` fixes some rejoin edges. Its free ends `V_free`, with
+`|V_free| = f`, are the ends not covered by `F`. A **completion** of `F` is a
+perfect matching of all `2n` ends that contains every edge of `F`.
+
+**Lemma (PROVED).** Completions of `F` correspond one-to-one to perfect matchings
+of `V_free`. *Proof.* Removing the edges of `F` from a completion leaves a
+perfect matching of `V_free`. Adding `F` to a perfect matching of `V_free` gives
+a completion. The two maps are inverse to each other. ∎ There are therefore
+`(f−1)!!` completions (`num_completions`).
+
+**Theorem (PROVED).** `sample_completion` (shuffle `V_free`, pair consecutive
+positions, add `F`) returns every completion with probability `1/(f−1)!!`.
+*Proof.* §1 applied to the `f` free ends gives a uniform perfect matching of
+`V_free`; the lemma transfers uniformity to completions. ∎
+
+No proposal is ever rejected for missing a fixed edge, so this is not
+rejection from ALL. Rejection by state-space membership is then applied
+exactly as in §2–§3. The accepted states are therefore IID and uniform on
+
+    X_F(Θ) = { r ∈ X(Θ) : F ⊆ r },
+
+with acceptance probability `|X_F(Θ)| / (f−1)!!`. For small `f` the target is
+enumerable (`iter_states(theta, space, fixed)`). The tests compare state
+frequencies against it and check the enumeration against filtering the
+full enumeration, for every layout with n ≤ 4.

@@ -125,3 +125,68 @@ def require_compatible(theta: InitialConfiguration, matching: RejoinMatching) ->
         raise ValueError(
             f"Matching has {matching.num_ends} ends but Θ{theta.breaks} has {theta.num_ends}."
         )
+
+
+class PartialMatching:
+    """Immutable set of fixed rejoin edges covering some of the free ends.
+
+    Used for observed rejoins: a *completion* is a perfect matching that
+    contains every fixed edge. The remaining ``free_ends`` are matched among
+    themselves.
+    """
+
+    __slots__ = ("_num_ends", "_pairs", "_partner")
+
+    def __init__(self, num_ends: int, pairs: Iterable[tuple[int, int]] = ()):
+        if isinstance(num_ends, bool) or not isinstance(num_ends, int) or num_ends < 0 or num_ends % 2:
+            raise InvalidMatchingError(f"num_ends must be a non-negative even integer, got {num_ends!r}.")
+        pairs = tuple(pairs)  # may be a one-shot iterator; it is traversed twice below
+        partner: dict[int, int] = {}
+        for u, v in pairs:
+            for x in (u, v):
+                if isinstance(x, bool) or not isinstance(x, int) or not 0 <= x < num_ends:
+                    raise InvalidMatchingError(f"End {x!r} is out of range for {num_ends} ends.")
+                if x in partner:
+                    raise InvalidMatchingError(f"End {x} occurs in more than one fixed edge.")
+            if u == v:
+                raise InvalidMatchingError(f"End {u} is matched to itself.")
+            partner[u], partner[v] = v, u
+        self._num_ends = num_ends
+        self._partner = partner
+        self._pairs = tuple(sorted((min(u, v), max(u, v)) for u, v in pairs))
+
+    @property
+    def num_ends(self) -> int:
+        return self._num_ends
+
+    def pairs(self) -> tuple[tuple[int, int], ...]:
+        """Fixed edges ``(u, v)`` with ``u < v``, sorted."""
+        return self._pairs
+
+    def partner(self, end: int) -> int | None:
+        """Fixed partner of ``end``, or ``None`` if ``end`` is free."""
+        return self._partner.get(end)
+
+    @property
+    def free_ends(self) -> tuple[int, ...]:
+        return tuple(v for v in range(self._num_ends) if v not in self._partner)
+
+    def is_completed_by(self, matching: RejoinMatching) -> bool:
+        """Whether ``matching`` contains every fixed edge."""
+        if matching.num_ends != self._num_ends:
+            return False
+        return all(matching[u] == v for u, v in self._pairs)
+
+    def __len__(self) -> int:
+        return len(self._pairs)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PartialMatching):
+            return NotImplemented
+        return (self._num_ends, self._pairs) == (other._num_ends, other._pairs)
+
+    def __hash__(self) -> int:
+        return hash((self._num_ends, self._pairs))
+
+    def __repr__(self) -> str:
+        return f"PartialMatching({self._num_ends}, {list(self._pairs)})"

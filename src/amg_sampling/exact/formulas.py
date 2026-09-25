@@ -70,6 +70,17 @@ def num_states_with_cycle_structure(c: CycleStructure) -> int:
     return count
 
 
+def num_completions(num_free_ends: int) -> int:
+    """Number of completions of a partial matching with ``f`` free ends: ``(f−1)!!``.
+
+    Derived: completions correspond one-to-one to perfect matchings of the free
+    ends (theorem 1 applied to ``f`` points). ALL only; no state-space condition.
+    """
+    if isinstance(num_free_ends, bool) or not isinstance(num_free_ends, int) or num_free_ends < 0 or num_free_ends % 2:
+        raise ValueError(f"num_free_ends must be a non-negative even integer, got {num_free_ends!r}.")
+    return prod(range(1, num_free_ends, 2))
+
+
 def num_single_cycle_states(n: int) -> int:
     """``2^{n−1} (n−1)!`` rejoin matchings with cycle structure ``C_n`` (``n ≥ 1``).
 

@@ -20,7 +20,7 @@ from __future__ import annotations
 import random
 from typing import Sequence
 
-from amg_sampling.core.matching import RejoinMatching
+from amg_sampling.core.matching import PartialMatching, RejoinMatching
 
 
 def matching_from_ordering(ends: Sequence[int]) -> RejoinMatching:
@@ -48,3 +48,24 @@ def sample_matching(num_dsbs: int, rng: random.Random) -> RejoinMatching:
     ends = list(range(2 * num_dsbs))
     rng.shuffle(ends)
     return matching_from_ordering(ends)
+
+
+def sample_completion(fixed: PartialMatching, rng: random.Random) -> RejoinMatching:
+    """A uniformly random completion of ``fixed``: its free ends are matched uniformly.
+
+    Completions of ``fixed`` correspond one-to-one to perfect matchings of its
+    free ends (add the fixed edges), so shuffled pairing of the free ends gives
+    every completion probability ``1 / (f−1)!!`` for ``f`` free ends
+    (``docs/theory/sampling.md`` §9). No proposal is rejected for missing a fixed edge.
+    """
+    if not isinstance(rng, random.Random):
+        raise TypeError("rng must be a random.Random instance.")
+    free = list(fixed.free_ends)
+    rng.shuffle(free)
+    partners = [0] * fixed.num_ends
+    for u, v in fixed.pairs():
+        partners[u], partners[v] = v, u
+    for i in range(0, len(free), 2):
+        a, b = free[i], free[i + 1]
+        partners[a], partners[b] = b, a
+    return RejoinMatching(partners)
