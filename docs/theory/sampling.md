@@ -160,7 +160,9 @@ quickly. MCMC is only worth its complications when:
    from uniform proposals no longer gives the right distribution.
 
 For the uniform targets studied here, the IID sampler is the baseline that
-any MCMC sampler must reproduce.
+any MCMC sampler must reproduce. The 2-switch chain in
+[`mcmc.md`](mcmc.md) (`sampler=mcmc`) does reproduce it, and is the starting
+point for non-uniform targets.
 
 ## 8. Results at n = 80
 

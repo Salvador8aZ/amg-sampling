@@ -54,13 +54,29 @@ class Problem:
 
 @dataclass(frozen=True)
 class SamplerSettings:
-    name: str  # "iid" or "exact"
+    name: str  # "iid", "mcmc" or "exact"
     num_samples: int = 100_000
     max_proposals_per_sample: int | None = 1_000_000
+    burn_in: int = 0  # mcmc only
+    thin: int = 1  # mcmc only
 
     @property
     def samples(self) -> bool:
-        return self.name == "iid"
+        return self.name in ("iid", "mcmc")
+
+    def draw(self, theta, space, rng, **kwargs):
+        """Sample the null with this sampler (see :func:`sample_null`)."""
+        return sample_null(
+            theta,
+            space,
+            rng,
+            self.num_samples,
+            max_proposals_per_sample=self.max_proposals_per_sample,
+            method=self.name,
+            burn_in=self.burn_in,
+            thin=self.thin,
+            **kwargs,
+        )
 
 
 # -- shared pieces ----------------------------------------------------------------
@@ -161,6 +177,8 @@ def header(
         "sampler": {
             "name": sampler.name,
             "num_samples": sampler.num_samples if sampler.samples else None,
+            "burn_in": sampler.burn_in if sampler.name == "mcmc" else None,
+            "thin": sampler.thin if sampler.name == "mcmc" else None,
             "seed": seed,
         },
         "interpretation": INTERPRETATION,
@@ -168,13 +186,36 @@ def header(
 
 
 def sampling_dict(sample, theoretical: Fraction | None) -> dict:
+    """Sampler bookkeeping. For a chain, proposals and acceptance refer to
+    2-switch moves, and the exact rejection acceptance does not apply.
+    """
     stats = sample.stats
-    return {
+    out = {
+        "method": sample.method,
         "samples": sample.num_samples,
         "proposals": stats.proposals,
         "acceptance_rate": stats.acceptance_rate,
-        "theoretical_acceptance": fraction_dict(theoretical),
+        "theoretical_acceptance": fraction_dict(
+            theoretical if sample.method == "iid" else None
+        ),
     }
+    if sample.correlated:
+        ess = sample.reference_ess()
+        out["batch_size"] = sample.batch_size
+        out["effective_samples_num_cycles"] = ess
+        out["integrated_autocorrelation_time"] = sample.num_samples / ess
+    return out
+
+
+def _ess_lookup(sample, key=None):
+    """``key -> ESS`` for a chain sample (reference ESS for unseen keys), or
+    ``None`` for IID samples.
+    """
+    if sample is None or not sample.correlated:
+        return None
+    table = sample.ess_by_key(key)
+    default = sample.reference_ess()
+    return lambda k: table.get(k, default)
 
 
 def safe_theoretical_acceptance(
@@ -187,10 +228,12 @@ def safe_theoretical_acceptance(
 
 
 def distribution_rows(
-    exact: dict | None, sampled: dict | None, key_name: str
+    exact: dict | None, sampled: dict | None, key_name: str, ess=None
 ) -> list[dict]:
     """Merge exact and sampled counts into rows (by probability for cycle structures,
     else by key).
+
+    ``ess``, for chain samples, maps a key to its effective sample size.
     """
     keys = set(exact or {}) | set(sampled or {})
     exact_total = sum((exact or {}).values())
@@ -207,10 +250,16 @@ def distribution_rows(
                 fraction_dict(Fraction(count, exact_total)) if exact_total else None
             )
         if sampled is not None:
-            est = ProportionEstimate(sampled.get(key, 0), sampled_total)
+            est = ProportionEstimate(
+                sampled.get(key, 0),
+                sampled_total,
+                effective_trials=ess(key) if ess else None,
+            )
             row["sampled_count"] = est.hits
             row["sampled_probability"] = est.estimate
             row["standard_error"] = est.standard_error
+            if ess:
+                row["effective_samples"] = est.effective_trials
         rows.append(row)
 
     def order(row):
@@ -250,15 +299,9 @@ def run_distribution(
     ref = exact_reference(theta, space)
     results = header("distribution", problem, space, sampler, seed)
     results["exact"] = exact_dict(ref)
-    sampled = None
+    sampled = sample = None
     if sampler.samples:
-        sample = sample_null(
-            theta,
-            space,
-            random.Random(seed),
-            sampler.num_samples,
-            max_proposals_per_sample=sampler.max_proposals_per_sample,
-        )
+        sample = sampler.draw(theta, space, random.Random(seed))
         results["sampling"] = sampling_dict(
             sample, safe_theoretical_acceptance(theta, space)
         )
@@ -266,46 +309,44 @@ def run_distribution(
     elif ref.cycle_distribution is None and ref.cycle_counts is None:
         raise AnalysisError(
             f"No exact result is available for {theta_label(theta)}: "
-            f"{ref.unavailable}. Use sampler=iid."
+            f"{ref.unavailable}. Use sampler=iid or sampler=mcmc."
         )
 
     results["cycle_distribution"] = distribution_rows(
-        ref.cycle_distribution, sampled, "cycle_structure"
+        ref.cycle_distribution, sampled, "cycle_structure", _ess_lookup(sample)
     )
     results["cycle_count_distribution"] = distribution_rows(
         ref.cycle_counts,
         summary_counts(sampled, num_cycles) if sampled else None,
         "num_cycles",
+        _ess_lookup(sample, num_cycles),
     )
     results["largest_cycle_distribution"] = distribution_rows(
         ref.largest_cycle,
         summary_counts(sampled, largest_cycle) if sampled else None,
         "largest_cycle",
+        _ess_lookup(sample, largest_cycle),
     )
     results["means"] = {
-        "num_cycles": mean_summary(
-            ref.cycle_counts, summary_counts(sampled, num_cycles) if sampled else None
-        ),
-        "largest_cycle": mean_summary(
-            ref.largest_cycle,
-            summary_counts(sampled, largest_cycle) if sampled else None,
-        ),
+        "num_cycles": mean_summary(ref.cycle_counts, sample, num_cycles),
+        "largest_cycle": mean_summary(ref.largest_cycle, sample, largest_cycle),
     }
     return results
 
 
-def mean_summary(exact: dict | None, sampled: dict | None) -> dict:
-    """Exact mean, and sample mean with standard error sd/sqrt(N)."""
+def mean_summary(exact: dict | None, sample, value) -> dict:
+    """Exact mean, and the sample mean of ``value(structure)`` with its standard
+    error (sd/sqrt(N) for IID samples, batch means for a chain).
+    """
     out = {"exact_mean": None, "sampled_mean": None, "sampled_standard_error": None}
     if exact:
         total = sum(exact.values())
         out["exact_mean"] = float(Fraction(sum(k * m for k, m in exact.items()), total))
-    if sampled:
+    if sample is not None:
+        sampled = summary_counts(sample.cycle_structures, value)
         n = sum(sampled.values())
-        mean = sum(k * m for k, m in sampled.items()) / n
-        var = sum(m * (k - mean) ** 2 for k, m in sampled.items()) / max(n - 1, 1)
-        out["sampled_mean"] = mean
-        out["sampled_standard_error"] = (var / n) ** 0.5
+        out["sampled_mean"] = sum(k * m for k, m in sampled.items()) / n
+        out["sampled_standard_error"] = sample.mean_standard_error(value)
     return out
 
 
@@ -328,14 +369,7 @@ def _null_and_edges(problem, space, sampler, seed, confidence, results) -> tuple
     edges = [(e.end_a, e.end_b) for e in pc.observed]
     sample = None
     if sampler.samples:
-        sample = sample_null(
-            theta,
-            space,
-            random.Random(seed),
-            sampler.num_samples,
-            track_edges=edges,
-            max_proposals_per_sample=sampler.max_proposals_per_sample,
-        )
+        sample = sampler.draw(theta, space, random.Random(seed), track_edges=edges)
         results["null"]["sampling"] = sampling_dict(
             sample, safe_theoretical_acceptance(theta, space)
         )
@@ -344,9 +378,7 @@ def _null_and_edges(problem, space, sampler, seed, confidence, results) -> tuple
     for i, edge in enumerate(pc.observed):
         row = edge_dict(pc, edge, i + 1)
         if sample is not None:
-            est = ProportionEstimate(
-                sample.edge_hits[i], sample.num_samples, confidence
-            )
+            est = sample.edge_estimate(i, confidence)
             row["null_probability"] = est.to_dict()
             row["null_probability_text"] = est.describe()
         rejoins.append(row)
@@ -371,7 +403,7 @@ def _joint(problem, space, ref, completions, sample, confidence) -> dict:
     else:
         joint["exact"] = None
     if sample is not None and problem.patient.observed:
-        est = ProportionEstimate(sample.joint_hits, sample.num_samples, confidence)
+        est = sample.joint_estimate(confidence)
         joint["sampled"] = est.to_dict()
         joint["sampled_text"] = est.describe()
     return joint
@@ -388,7 +420,7 @@ def run_rejoin_probability(
     if not sampler.samples:
         raise AnalysisError(
             "analysis=rejoin_probability estimates probabilities by sampling; "
-            "use sampler=iid."
+            "use sampler=iid or sampler=mcmc."
         )
     results = header("rejoin_probability", problem, space, sampler, seed)
     ref, sample = _null_and_edges(problem, space, sampler, seed, confidence, results)
@@ -441,20 +473,15 @@ def run_observed(
     comp_exact = completions.cycle_distribution
     if comp_exact is not None:
         comp["exact_count"] = sum(comp_exact.values())
-    comp_sampled = None
+    comp_sampled = cond = None
     if (
         sampler.samples
         and reconstructed is None
         and (comp_exact is None or sum(comp_exact.values()) > 0)
     ):
         try:
-            cond = sample_null(
-                theta,
-                space,
-                random.Random(seed + 1_000_003),
-                sampler.num_samples,
-                fixed=pc.fixed,
-                max_proposals_per_sample=sampler.max_proposals_per_sample,
+            cond = sampler.draw(
+                theta, space, random.Random(seed + 1_000_003), fixed=pc.fixed
             )
         except RuntimeError as error:
             comp["sampling_error"] = str(error)
@@ -462,7 +489,7 @@ def run_observed(
             comp_sampled = cond.cycle_structures
             comp["sampling"] = sampling_dict(cond, None)
     comp["distribution"] = distribution_rows(
-        comp_exact, comp_sampled, "cycle_structure"
+        comp_exact, comp_sampled, "cycle_structure", _ess_lookup(cond)
     )
     observed["completions"] = comp
     results["observed"] = observed
@@ -473,6 +500,7 @@ def run_observed(
     else:
         structures = list(comp_exact or comp_sampled or {})
     null_total = sum(sample.cycle_structures.values()) if sample else 0
+    comp_ess, null_ess = _ess_lookup(cond), _ess_lookup(sample)
     rows = []
     for c in structures:
         row = {"cycle_structure": str(c), "num_cycles": c.num_cycles}
@@ -482,14 +510,20 @@ def run_observed(
             )
         if comp_sampled:
             share = ProportionEstimate(
-                comp_sampled.get(c, 0), sum(comp_sampled.values()), confidence
+                comp_sampled.get(c, 0),
+                sum(comp_sampled.values()),
+                confidence,
+                comp_ess(c) if comp_ess else None,
             )
             row["share_among_completions_sampled"] = share.to_dict()
             row["share_among_completions_sampled_text"] = share.describe()
         row["null_exact"] = fraction_dict(ref.probability(ref.cycle_distribution, c))
         if sample is not None:
             est = ProportionEstimate(
-                sample.cycle_structures.get(c, 0), null_total, confidence
+                sample.cycle_structures.get(c, 0),
+                null_total,
+                confidence,
+                null_ess(c) if null_ess else None,
             )
             row["null_sampled"] = est.to_dict()
             row["null_sampled_text"] = est.describe()
@@ -510,6 +544,7 @@ def run_observed(
         ref.cycle_distribution,
         sample.cycle_structures if sample else None,
         "cycle_structure",
+        _ess_lookup(sample),
     )
     results["joint_observed_rejoins"] = _joint(
         problem, space, ref, completions, sample, confidence
