@@ -38,7 +38,9 @@ class StateSpace(Enum):
             return True
         if self is StateSpace.DERANGED:
             return _is_deranged(matching.partners)
-        return _is_deranged(matching.partners) and _is_connected(theta, matching.partners)
+        return _is_deranged(matching.partners) and _is_connected(
+            theta, matching.partners
+        )
 
 
 def is_deranged(theta: InitialConfiguration, matching: RejoinMatching) -> bool:
@@ -79,7 +81,9 @@ def _is_connected(theta: InitialConfiguration, r: tuple[int, ...]) -> bool:
     return len({_find(parent, i) for i in range(theta.num_chromosomes)}) == 1
 
 
-def _chromosome_union_find(theta: InitialConfiguration, r: tuple[int, ...]) -> list[int]:
+def _chromosome_union_find(
+    theta: InitialConfiguration, r: tuple[int, ...]
+) -> list[int]:
     parent = list(range(theta.num_chromosomes))
     chrom = theta.dsb_chromosome
     for v, w in enumerate(r):

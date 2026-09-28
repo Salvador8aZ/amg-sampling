@@ -27,10 +27,18 @@ def make_plots(results: dict, directory: str | Path) -> list[Path]:
     written = []
     analysis = results["analysis"]
     if analysis == "distribution":
-        written.append(_cycle_count_plot(results, directory / "cycle_count_distribution.png"))
+        written.append(
+            _cycle_count_plot(results, directory / "cycle_count_distribution.png")
+        )
     if analysis == "observed":
-        written.append(_observed_structures_plot(results, directory / "observed_cycle_structures.png"))
-    if analysis in ("observed", "rejoin_probability") and any("null_probability" in r for r in results["rejoins"]):
+        written.append(
+            _observed_structures_plot(
+                results, directory / "observed_cycle_structures.png"
+            )
+        )
+    if analysis in ("observed", "rejoin_probability") and any(
+        "null_probability" in r for r in results["rejoins"]
+    ):
         written.append(_rejoin_plot(results, directory / "rejoin_probabilities.png"))
     return [p for p in written if p is not None]
 
@@ -45,14 +53,25 @@ def _title(results: dict) -> str:
 def _cycle_count_plot(results, path):
     import matplotlib.pyplot as plt
 
-    rows = [r for r in results["cycle_count_distribution"] if r.get("sampled_count", 0) or _exact(r) >= 1e-4]
+    rows = [
+        r
+        for r in results["cycle_count_distribution"]
+        if r.get("sampled_count", 0) or _exact(r) >= 1e-4
+    ]
     if not rows:
         return None
     xs = [r["num_cycles"] for r in rows]
     fig, ax = plt.subplots(figsize=(7, 4))
     if any("sampled_probability" in r for r in rows):
-        ax.bar(xs, [r.get("sampled_probability", 0) for r in rows], color="#4C72B0", alpha=0.8,
-               yerr=[1.96 * r.get("standard_error", 0) for r in rows], capsize=3, label="IID sample (±1.96 s.e.)")
+        ax.bar(
+            xs,
+            [r.get("sampled_probability", 0) for r in rows],
+            color="#4C72B0",
+            alpha=0.8,
+            yerr=[1.96 * r.get("standard_error", 0) for r in rows],
+            capsize=3,
+            label="IID sample (±1.96 s.e.)",
+        )
     if any(r.get("exact_probability") for r in rows):
         ax.plot(xs, [_exact(r) for r in rows], "o", color="#C44E52", label="exact")
     ax.set_xlabel("number of exchange cycles")
@@ -75,18 +94,37 @@ def _observed_structures_plot(results, path):
     xs = range(len(rows))
     fig, ax = plt.subplots(figsize=(max(6, 1.1 * len(rows)), 4))
     width = 0.4
-    share = [r["share_among_completions"]["value"] if r.get("share_among_completions") else 0 for r in rows]
+    share = [
+        r["share_among_completions"]["value"] if r.get("share_among_completions") else 0
+        for r in rows
+    ]
     null = [
-        r["null_exact"]["value"] if r.get("null_exact") else (r.get("null_sampled") or {}).get("estimate", 0)
+        r["null_exact"]["value"]
+        if r.get("null_exact")
+        else (r.get("null_sampled") or {}).get("estimate", 0)
         for r in rows
     ]
     if any(share):
-        ax.bar([x - width / 2 for x in xs], share, width, color="#55A868", label="share of completions of the observed rejoins")
-    ax.bar([x + width / 2 for x in xs], null, width, color="#4C72B0", label=f"null: {results['null_model']}")
+        ax.bar(
+            [x - width / 2 for x in xs],
+            share,
+            width,
+            color="#55A868",
+            label="share of completions of the observed rejoins",
+        )
+    ax.bar(
+        [x + width / 2 for x in xs],
+        null,
+        width,
+        color="#4C72B0",
+        label=f"null: {results['null_model']}",
+    )
     ax.set_xticks(list(xs), labels)
     ax.set_ylabel("probability")
     observed = results.get("observed_cycle_structure")
-    ax.set_title(f"{_title(results)}" + (f"  (observed: {observed})" if observed else ""))
+    ax.set_title(
+        f"{_title(results)}" + (f"  (observed: {observed})" if observed else "")
+    )
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -104,7 +142,12 @@ def _rejoin_plot(results, path):
     fig, ax = plt.subplots(figsize=(8, 0.5 * len(rows) + 1.5))
     ax.barh(range(len(rows)), values, xerr=errors, color="#4C72B0", capsize=3)
     n = results["problem"]["theta"]["num_dsbs"]
-    ax.axvline(1 / (2 * n - 1), color="#C44E52", linestyle="--", label="1/(2n−1): any given pair under uniform ALL")
+    ax.axvline(
+        1 / (2 * n - 1),
+        color="#C44E52",
+        linestyle="--",
+        label="1/(2n−1): any given pair under uniform ALL",
+    )
     ax.set_yticks(range(len(rows)), labels, fontsize=8)
     ax.invert_yaxis()
     ax.set_xlabel(f"P(edge present) under {results['null_model']}  (±1.96 s.e.)")

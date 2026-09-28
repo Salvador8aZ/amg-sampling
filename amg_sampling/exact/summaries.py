@@ -20,8 +20,8 @@ Counts are integers; divide by ``num_all_states(n)`` or
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from math import comb, factorial
-from typing import Callable
 
 from amg_sampling.core.statespace import StateSpace
 
@@ -39,7 +39,9 @@ def _single_cycles(l: int) -> int:
 
 
 def _count_with_lengths(n: int, allowed: Callable[[int], bool]) -> list[int]:
-    """``A(m)`` for ``m = 0..n``: matchings of ``m`` DSBs using only allowed cycle lengths."""
+    """``A(m)`` for ``m = 0..n``: matchings of ``m`` DSBs using only allowed
+    cycle lengths.
+    """
     a = [1] + [0] * n
     for m in range(1, n + 1):
         a[m] = sum(
@@ -68,7 +70,9 @@ def cycle_count_distribution(n: int, space: StateSpace) -> dict[int, int]:
 
 
 def largest_cycle_distribution(n: int, space: StateSpace) -> dict[int, int]:
-    """``{L: number of states whose longest exchange cycle is C_L}`` over ALL or DERANGED."""
+    """``{L: number of states whose longest exchange cycle is C_L}`` over ALL
+    or DERANGED.
+    """
     lo = _min_length(space)
     at_most = {}
     for longest in range(lo - 1, n + 1):

@@ -24,8 +24,8 @@ are paired, so the procedure lists every completion of ``fixed`` exactly once.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterator, Mapping
 from fractions import Fraction
-from typing import Iterator, Mapping
 
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import CycleStructure, cycle_structure
@@ -36,7 +36,8 @@ from amg_sampling.core.statespace import StateSpace
 def iter_states(
     theta: InitialConfiguration, space: StateSpace, fixed: PartialMatching | None = None
 ) -> Iterator[RejoinMatching]:
-    """Yield every state of ``space`` for ``theta`` exactly once, in a deterministic order.
+    """Yield every state of ``space`` for ``theta`` exactly once, in a
+    deterministic order.
 
     If ``fixed`` is given, only states containing every fixed rejoin edge are listed.
     """
@@ -69,23 +70,30 @@ def iter_states(
 def count_states(
     theta: InitialConfiguration, space: StateSpace, fixed: PartialMatching | None = None
 ) -> int:
-    """``|space(Θ)|`` (or the number of its states containing ``fixed``) by exhaustive enumeration."""
+    """``|space(Θ)|`` (or the number of its states containing ``fixed``) by
+    exhaustive enumeration.
+    """
     return sum(1 for _ in iter_states(theta, space, fixed))
 
 
 def exact_cycle_distribution(
     theta: InitialConfiguration, space: StateSpace, fixed: PartialMatching | None = None
 ) -> dict[CycleStructure, int]:
-    """Number of states of ``space`` with each cycle structure, by exhaustive enumeration.
+    """Number of states of ``space`` with each cycle structure, by exhaustive
+    enumeration.
 
     Keys are in reverse lexicographic order of ``parts`` (``C4, C3+C1, 2C2, ...``).
     Cycle structures with no states are omitted.
     """
-    counts = Counter(cycle_structure(theta, r) for r in iter_states(theta, space, fixed))
+    counts = Counter(
+        cycle_structure(theta, r) for r in iter_states(theta, space, fixed)
+    )
     return dict(sorted(counts.items(), key=lambda item: item[0].parts, reverse=True))
 
 
-def probabilities(counts: Mapping[CycleStructure, int]) -> dict[CycleStructure, Fraction]:
+def probabilities(
+    counts: Mapping[CycleStructure, int],
+) -> dict[CycleStructure, Fraction]:
     """Exact probabilities ``count(C) / total`` from integer counts."""
     total = sum(counts.values())
     if total == 0:
@@ -95,4 +103,7 @@ def probabilities(counts: Mapping[CycleStructure, int]) -> dict[CycleStructure, 
 
 def _check_fixed(theta: InitialConfiguration, fixed: PartialMatching) -> None:
     if fixed.num_ends != theta.num_ends:
-        raise ValueError(f"Fixed rejoins are on {fixed.num_ends} ends but Θ{theta.breaks} has {theta.num_ends}.")
+        raise ValueError(
+            f"Fixed rejoins are on {fixed.num_ends} ends but Θ{theta.breaks} "
+            f"has {theta.num_ends}."
+        )

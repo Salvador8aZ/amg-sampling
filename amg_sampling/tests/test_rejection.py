@@ -8,7 +8,11 @@ import pytest
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import cycle_structure
 from amg_sampling.core.statespace import StateSpace
-from amg_sampling.exact.enumerate import count_states, exact_cycle_distribution, iter_states
+from amg_sampling.exact.enumerate import (
+    count_states,
+    exact_cycle_distribution,
+    iter_states,
+)
 from amg_sampling.exact.formulas import (
     cycle_distribution_all,
     cycle_distribution_deranged,
@@ -56,7 +60,9 @@ def test_state_level_uniformity(breaks, space, seed):
     theta = InitialConfiguration(breaks)
     states = set(iter_states(theta, space))
     per_state = 150
-    samples = list(iter_samples(theta, space, random.Random(seed), per_state * len(states)))
+    samples = list(
+        iter_samples(theta, space, random.Random(seed), per_state * len(states))
+    )
     observed = Counter(samples)
     assert set(observed) == states  # every sample is a member; every member appears
     _, _, p = chi_square_gof(observed, {s: Fraction(1, len(states)) for s in states})
@@ -96,7 +102,8 @@ def test_cycle_structure_distribution(breaks, space, seed):
     theta = InitialConfiguration(breaks)
     exact = normalise(exact_distribution(theta, space))
     observed = Counter(
-        cycle_structure(theta, r) for r in iter_samples(theta, space, random.Random(seed), 20_000)
+        cycle_structure(theta, r)
+        for r in iter_samples(theta, space, random.Random(seed), 20_000)
     )
     _, _, p = chi_square_gof(observed, exact)
     assert p > ALPHA
@@ -143,7 +150,11 @@ def test_acceptance_rate(breaks, space, seed):
 
 def test_all_never_rejects():
     stats = SamplingStats()
-    list(iter_samples(InitialConfiguration((3, 2)), ALL, random.Random(0), 200, stats=stats))
+    list(
+        iter_samples(
+            InitialConfiguration((3, 2)), ALL, random.Random(0), 200, stats=stats
+        )
+    )
     assert (stats.proposals, stats.accepted, stats.rejected) == (200, 200, 0)
     assert stats.acceptance_rate == 1.0
 
@@ -182,12 +193,16 @@ def test_stats_before_any_proposal():
 # -- level 4: independence (sanity check; the argument is in sampling.md §3) -----
 
 
-@pytest.mark.parametrize("breaks, space, seed", [((2,), PROPER, 51), ((3,), DERANGED, 52)])
+@pytest.mark.parametrize(
+    "breaks, space, seed", [((2,), PROPER, 51), ((3,), DERANGED, 52)]
+)
 def test_non_overlapping_pairs_are_uniform_on_the_product(breaks, space, seed):
     theta = InitialConfiguration(breaks)
     states = list(iter_states(theta, space))
     per_cell = 100
-    draws = list(iter_samples(theta, space, random.Random(seed), 2 * per_cell * len(states) ** 2))
+    draws = list(
+        iter_samples(theta, space, random.Random(seed), 2 * per_cell * len(states) ** 2)
+    )
     pairs = Counter(zip(draws[0::2], draws[1::2]))
     cells = {(a, b): Fraction(1, len(states) ** 2) for a in states for b in states}
     _, _, p = chi_square_gof(pairs, cells)

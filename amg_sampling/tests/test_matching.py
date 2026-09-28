@@ -10,7 +10,6 @@ from amg_sampling.core.matching import (
 )
 from amg_sampling.tests.strategies import matching_and_permutation, states
 
-
 # -- deterministic -----------------------------------------------------------
 
 

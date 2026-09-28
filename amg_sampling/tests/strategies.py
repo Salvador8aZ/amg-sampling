@@ -16,7 +16,9 @@ def breaks(max_chromosomes: int = 6, max_breaks: int = 6):
 
 
 def matchings(num_ends: int):
-    """Perfect matchings on ``range(num_ends)``: shuffle the ends, pair consecutive ones."""
+    """Perfect matchings on ``range(num_ends)``: shuffle the ends, pair
+    consecutive ones.
+    """
     return st.permutations(range(num_ends)).map(
         lambda p: RejoinMatching.from_pairs(num_ends, zip(p[::2], p[1::2]))
     )

@@ -66,7 +66,9 @@ class PatientRecord:
 
     @property
     def chromosomes(self) -> tuple[int, ...]:
-        return tuple(sorted({b.chromosome for v in self.variants for b in v.breakpoints}))
+        return tuple(
+            sorted({b.chromosome for v in self.variants for b in v.breakpoints})
+        )
 
 
 @dataclass(frozen=True, slots=True)

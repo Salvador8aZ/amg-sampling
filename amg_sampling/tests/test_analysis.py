@@ -1,4 +1,6 @@
-"""Analyses: estimates, exact references, observed/rejoin probabilities, result files."""
+"""Analyses: estimates, exact references, observed/rejoin probabilities, result
+files.
+"""
 
 import csv
 import json
@@ -52,7 +54,9 @@ def test_proportion_estimate():
 def test_zero_hits_are_never_reported_as_probability_zero():
     est = ProportionEstimate(0, 100_000)
     assert est.zero_hit_upper_bound == pytest.approx(1 - 0.05 ** (1 / 100_000))
-    assert est.zero_hit_upper_bound == pytest.approx(3 / 100_000, rel=0.01)  # "rule of three"
+    assert est.zero_hit_upper_bound == pytest.approx(
+        3 / 100_000, rel=0.01
+    )  # "rule of three"
     text = est.describe()
     assert text.startswith("0 occurrences in 100,000 samples")
     assert "upper bound 2.996e-05" in text
@@ -110,9 +114,14 @@ def test_distribution_analysis_matches_exact_and_is_deterministic():
     assert a["sampling"]["samples"] == 3000
     rows = {r["cycle_structure"]: r for r in a["cycle_distribution"]}
     assert set(rows) == {"C5", "C3+C2"}
-    assert rows["C5"]["exact_probability"]["fraction"] == "8/11"  # 384 / 528 (paper, table 3)
+    assert (
+        rows["C5"]["exact_probability"]["fraction"] == "8/11"
+    )  # 384 / 528 (paper, table 3)
     for r in rows.values():
-        assert abs(r["sampled_probability"] - r["exact_probability"]["value"]) < 5 * r["standard_error"]
+        assert (
+            abs(r["sampled_probability"] - r["exact_probability"]["value"])
+            < 5 * r["standard_error"]
+        )
 
 
 def test_exact_sampler_needs_an_exact_result():
@@ -134,13 +143,17 @@ def test_observed_analysis_against_enumeration():
     assert obs["reconstructed"] is None
 
     joint = results["joint_observed_rejoins"]
-    assert Fraction(joint["exact"]["fraction"]) == Fraction(len(consistent), len(proper))
+    assert Fraction(joint["exact"]["fraction"]) == Fraction(
+        len(consistent), len(proper)
+    )
 
     # Rejoin probabilities: sampled vs exact P(e in R) by enumeration.
     for row in results["rejoins"]:
         exact = sum(r[row["end_a"]] == row["end_b"] for r in proper) / len(proper)
         est = row["null_probability"]
-        assert abs(est["estimate"] - exact) < 5 * math.sqrt(exact * (1 - exact) / est["samples"])
+        assert abs(est["estimate"] - exact) < 5 * math.sqrt(
+            exact * (1 - exact) / est["samples"]
+        )
 
     # Observed cycle structures: exact null probability agrees with enumeration.
     null = exact_cycle_distribution(pc.theta, PROPER)
@@ -150,23 +163,33 @@ def test_observed_analysis_against_enumeration():
 
 
 def test_observed_analysis_with_unique_completion():
-    results = run_observed(patient_problem("SYN-2", [5]), PROPER, SamplerSettings("iid", 2000), seed=1)
+    results = run_observed(
+        patient_problem("SYN-2", [5]), PROPER, SamplerSettings("iid", 2000), seed=1
+    )
     rec = results["observed"]["reconstructed"]
     assert rec["cycle_structure"] == "C2"
     assert rec["membership"] == {"all": True, "deranged": True, "proper": True}
-    assert [e["status"] for e in rec["rejoins"]] == ["observed junction", "reconstructed (unique completion)"]
+    assert [e["status"] for e in rec["rejoins"]] == [
+        "observed junction",
+        "reconstructed (unique completion)",
+    ]
     assert results["observed_cycle_structure"] == "C2"
 
 
 def test_joint_zero_hit_handling():
-    # P(both observed rejoins | uniform ALL) = 3/105; with 5 samples and this seed there is no hit.
+    # P(both observed rejoins | uniform ALL) = 3/105; with 5 samples and this
+    # seed there is no hit.
     problem = patient_problem()
-    results = run_rejoin_probability(problem, StateSpace.ALL, SamplerSettings("iid", 5), seed=3)
+    results = run_rejoin_probability(
+        problem, StateSpace.ALL, SamplerSettings("iid", 5), seed=3
+    )
     joint = results["joint_observed_rejoins"]
     assert Fraction(joint["exact"]["fraction"]) == Fraction(3, 105)
     assert joint["sampled"]["hits"] == 0
     assert joint["sampled"]["estimate"] == 0
-    assert joint["sampled"]["zero_hit_upper_bound"] == pytest.approx(1 - 0.05 ** (1 / 5))
+    assert joint["sampled"]["zero_hit_upper_bound"] == pytest.approx(
+        1 - 0.05 ** (1 / 5)
+    )
     assert joint["sampled_text"].startswith("0 occurrences in 5 samples")
 
 
@@ -175,10 +198,12 @@ def test_observed_needs_a_patient():
     with pytest.raises(AnalysisError, match="problem=patient"):
         run_observed(problem, PROPER, SamplerSettings("iid", 10), seed=0)
     with pytest.raises(AnalysisError):
-        run_rejoin_probability(patient_problem(), PROPER, SamplerSettings("exact"), seed=0)
+        run_rejoin_probability(
+            patient_problem(), PROPER, SamplerSettings("exact"), seed=0
+        )
 
 
-# -- results files, report, plots --------------------------------------------------------
+# -- results files, report, plots -------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -194,24 +219,51 @@ def test_results_json_schema(tmp_path, observed_results):
     assert data["state_space"] == "proper"
     assert data["null_model"] == "Uniform(PROPER(Θ))"
     assert "not biological" in data["interpretation"]
-    for key in ("problem", "sampler", "null", "observed", "rejoins", "joint_observed_rejoins",
-                "observed_cycle_structures_under_null", "null_cycle_distribution"):
+    for key in (
+        "problem",
+        "sampler",
+        "null",
+        "observed",
+        "rejoins",
+        "joint_observed_rejoins",
+        "observed_cycle_structures_under_null",
+        "null_cycle_distribution",
+    ):
         assert key in data
     assert data["problem"]["theta"] == {
-        "notation": "Θ(2,(3,1))", "num_chromosomes": 2, "breaks": [3, 1], "num_dsbs": 4, "num_free_ends": 8,
+        "notation": "Θ(2,(3,1))",
+        "num_chromosomes": 2,
+        "breaks": [3, 1],
+        "num_dsbs": 4,
+        "num_free_ends": 8,
     }
     assert data["problem"]["data_source"]["file_name"] == "synthetic_sheth.csv"
 
 
 def test_csv_tables(tmp_path, observed_results):
     files = {p.name for p in write_results(observed_results, tmp_path)}
-    assert {"results.json", "rejoin_probabilities.csv", "observed_cycle_structures.csv",
-            "null_cycle_distribution.csv", "completion_distribution.csv"} <= files
-    with open(tmp_path / "rejoin_probabilities.csv", newline="", encoding="utf-8") as handle:
+    assert {
+        "results.json",
+        "rejoin_probabilities.csv",
+        "observed_cycle_structures.csv",
+        "null_cycle_distribution.csv",
+        "completion_distribution.csv",
+    } <= files
+    with open(
+        tmp_path / "rejoin_probabilities.csv", newline="", encoding="utf-8"
+    ) as handle:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 2
-    for column in ("edge", "site_a", "site_b", "status", "source_line", "null_probability_estimate",
-                   "null_probability_standard_error", "null_probability_zero_hit_upper_bound"):
+    for column in (
+        "edge",
+        "site_a",
+        "site_b",
+        "status",
+        "source_line",
+        "null_probability_estimate",
+        "null_probability_standard_error",
+        "null_probability_zero_hit_upper_bound",
+    ):
         assert column in rows[0]
 
 

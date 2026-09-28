@@ -46,12 +46,22 @@ def _problem_block(problem, add):
     if problem["kind"] == "patient":
         add(f"Patient:          {problem['patient_id']}")
         chroms = problem["chromosomes"]
-        add(f"Chromosomes:      {', '.join(map(str, chroms))}  ({theta['num_chromosomes']} chromosomes)")
+        add(
+            f"Chromosomes:      {', '.join(map(str, chroms))}  "
+            f"({theta['num_chromosomes']} chromosomes)"
+        )
         alloc = ", ".join(f"chr{c}: {b}" for c, b in zip(chroms, theta["breaks"]))
         source = problem.get("data_source")
         if source:
-            tag = "reference copy" if source["is_reference_copy"] else "NOT the reference copy"
-            add(f"Data:             {source['file_name']} ({tag}, sha256 {source['sha256'][:12]}…)")
+            tag = (
+                "reference copy"
+                if source["is_reference_copy"]
+                else "NOT the reference copy"
+            )
+            add(
+                f"Data:             {source['file_name']} "
+                f"({tag}, sha256 {source['sha256'][:12]}…)"
+            )
     else:
         add(f"Configuration:    {problem['label']}")
         add(f"Chromosomes:      {theta['num_chromosomes']}")
@@ -69,7 +79,10 @@ def _sampling_block(results, sampling, add):
         return
     theory = sampling.get("theoretical_acceptance")
     theory_text = f" (exact {fp(theory['value'])})" if theory else ""
-    add("Sampling method:  IID rejection sampling (uniform proposals, exact acceptance test)")
+    add(
+        "Sampling method:  IID rejection sampling "
+        "(uniform proposals, exact acceptance test)"
+    )
     add(f"Samples:          {sampling['samples']:,}")
     add(f"Proposals:        {sampling['proposals']:,}")
     add(f"Acceptance rate:  {fp(sampling['acceptance_rate'])}{theory_text}")
@@ -81,7 +94,9 @@ def _exact_block(exact, space, add):
         return
     total = exact.get("total_states")
     if total is not None:
-        add(f"|{space.upper()}(Θ)|:{' ' * max(1, 12 - len(space))}{_big(total)} (exact)")
+        add(
+            f"|{space.upper()}(Θ)|:{' ' * max(1, 12 - len(space))}{_big(total)} (exact)"
+        )
     if exact.get("cycle_distribution_available"):
         add("Exact reference:  full cycle-structure distribution available")
     else:
@@ -89,8 +104,10 @@ def _exact_block(exact, space, add):
         add(f"Exact reference:  cycle-structure distribution unavailable ({reasons})")
     if exact.get("total_variation_bound"):
         add(
-            "                  scalar summaries use exact Uniform(DERANGED); it differs from "
-            f"Uniform(PROPER) by at most {fp(exact['total_variation_bound']['value'])} in any probability"
+            "                  scalar summaries use exact Uniform(DERANGED); "
+            "it differs from "
+            f"Uniform(PROPER) by at most "
+            f"{fp(exact['total_variation_bound']['value'])} in any probability"
         )
 
 
@@ -100,7 +117,11 @@ def _distribution_sections(results, top, add):
     add(f"Cycle structures (top {min(top, len(rows))} of {len(rows)} observed/exact)")
     add(_table(rows[:top], "cycle_structure", "structure"))
     means = results.get("means", {})
-    rows = [r for r in results["cycle_count_distribution"] if r.get("sampled_count", 0) > 0 or _exact_value(r) >= 1e-4]
+    rows = [
+        r
+        for r in results["cycle_count_distribution"]
+        if r.get("sampled_count", 0) > 0 or _exact_value(r) >= 1e-4
+    ]
     add("")
     add("Number of cycles |C| (values with a sample or exact probability ≥ 1e-4)")
     add(_table(rows, "num_cycles", "|C|"))
@@ -110,7 +131,10 @@ def _distribution_sections(results, top, add):
         key=lambda r: -(_exact_value(r) or r.get("sampled_probability", 0.0)),
     )[:5]
     add("")
-    add("Largest cycle C_l (five most likely values; full table in largest_cycle_distribution.csv)")
+    add(
+        "Largest cycle C_l (five most likely values; "
+        "full table in largest_cycle_distribution.csv)"
+    )
     add(_table(rows, "largest_cycle", "l"))
     add(_mean_line(means.get("largest_cycle")))
 
@@ -120,7 +144,9 @@ def _mean_line(mean) -> str:
         return ""
     parts = []
     if mean.get("sampled_mean") is not None:
-        parts.append(f"sampled {mean['sampled_mean']:.4g} ± {mean['sampled_standard_error']:.2g}")
+        parts.append(
+            f"sampled {mean['sampled_mean']:.4g} ± {mean['sampled_standard_error']:.2g}"
+        )
     if mean.get("exact_mean") is not None:
         parts.append(f"exact {mean['exact_mean']:.4g}")
     return f"  mean: {'; '.join(parts)}"
@@ -131,28 +157,47 @@ def _observed_sections(results, add):
     add("")
     add("Observed data")
     add(f"  Observed rejoins (junctions):  {obs['num_observed_rejoins']}")
-    add(f"  Unmatched DSB ends:            {obs['num_unmatched_ends']}"
-        f"  →  {obs['num_completions_all']:,} possible completions")
+    add(
+        f"  Unmatched DSB ends:            {obs['num_unmatched_ends']}"
+        f"  →  {obs['num_completions_all']:,} possible completions"
+    )
     comp = obs["completions"]
     if comp.get("exact_count") is not None:
-        add(f"  Completions in {comp['space'].upper()}:         {comp['exact_count']:,} (exact enumeration)")
+        add(
+            f"  Completions in {comp['space'].upper()}:         "
+            f"{comp['exact_count']:,} (exact enumeration)"
+        )
     elif comp.get("unavailable"):
-        add(f"  Completions in {comp['space'].upper()}:         not enumerated ({comp['unavailable']})")
+        add(
+            f"  Completions in {comp['space'].upper()}:         "
+            f"not enumerated ({comp['unavailable']})"
+        )
     rec = obs.get("reconstructed")
     if rec:
         add("")
-        add("Reconstructed configuration (the observed rejoins leave a unique completion)")
+        add(
+            "Reconstructed configuration "
+            "(the observed rejoins leave a unique completion)"
+        )
         for edge in rec["rejoins"]:
             add(f"  {edge['site_a']} — {edge['site_b']}   [{edge['status']}]")
-        member = ", ".join(f"{k.upper()}: {'yes' if v else 'no'}" for k, v in rec["membership"].items())
+        member = ", ".join(
+            f"{k.upper()}: {'yes' if v else 'no'}" for k, v in rec["membership"].items()
+        )
         add(f"  Cycle structure: {rec['cycle_structure']}    ({member})")
     rows = results["observed_cycle_structures_under_null"]
     add("")
     if rec:
         add("Observed cycle structure under the null")
     else:
-        add("Cycle structures of AMGs consistent with the observed rejoins, and their null probability")
-    add("  Share of completions: among AMGs that contain every observed rejoin (exact; sampled by")
+        add(
+            "Cycle structures of AMGs consistent with the observed rejoins, "
+            "and their null probability"
+        )
+    add(
+        "  Share of completions: among AMGs that contain every observed rejoin "
+        "(exact; sampled by"
+    )
     add("  conditional completion). Null: probability under the uniform null for Θ.")
     header = (
         f"  {'structure':<10} {'share (exact)':>19} {'share (sampled)':>20} "
@@ -161,11 +206,17 @@ def _observed_sections(results, add):
     add(header)
     for r in rows:
         share = r.get("share_among_completions")
-        share_text = f"{fp(share['value'])} ({share['fraction']})" if share and share.get("fraction") else "—"
+        share_text = (
+            f"{fp(share['value'])} ({share['fraction']})"
+            if share and share.get("fraction")
+            else "—"
+        )
         exact = r.get("null_exact")
         add(
-            f"  {r['cycle_structure']:<10} {share_text:>19} {r.get('share_among_completions_sampled_text', '—'):>20} "
-            f"{fp(exact['value']) if exact else '—':>13} {r.get('null_sampled_text', '—'):>24}"
+            f"  {r['cycle_structure']:<10} {share_text:>19} "
+            f"{r.get('share_among_completions_sampled_text', '—'):>20} "
+            f"{fp(exact['value']) if exact else '—':>13} "
+            f"{r.get('null_sampled_text', '—'):>24}"
         )
 
 
@@ -175,15 +226,22 @@ def _rejoin_sections(results, add):
     for r in results["rejoins"]:
         text = r.get("null_probability_text", "not sampled")
         add(f"  {r['edge']:<4} {r['site_a']:>26} — {r['site_b']:<26} {text}")
-        add(f"       [{r['status']}; source line {r['source_line']}; class {r['sv_class']}]")
+        add(
+            f"       [{r['status']}; source line {r['source_line']}; "
+            f"class {r['sv_class']}]"
+        )
     joint = results.get("joint_observed_rejoins")
     if joint:
         add("")
-        add(f"All {joint['num_observed_rejoins']} observed rejoins present simultaneously")
+        add(
+            f"All {joint['num_observed_rejoins']} observed rejoins "
+            "present simultaneously"
+        )
         if joint.get("exact"):
             add(
                 f"  exact:   {fp(joint['exact']['value'])}  "
-                f"({_big(joint['exact_numerator'])} / {_big(joint['exact_denominator'])})"
+                f"({_big(joint['exact_numerator'])} / "
+                f"{_big(joint['exact_denominator'])})"
             )
         if joint.get("sampled_text"):
             add(f"  sampled: {joint['sampled_text']}")
@@ -201,7 +259,10 @@ def _table(rows, key, label):
     for r in rows:
         line = f"  {str(r[key]):<14}"
         if has_sampled:
-            line += f" {fp(r.get('sampled_probability')):>10} {fp(r.get('standard_error')):>10}"
+            line += (
+                f" {fp(r.get('sampled_probability')):>10} "
+                f"{fp(r.get('standard_error')):>10}"
+            )
         if has_exact:
             line += f" {fp(_exact_value(r)) if r.get('exact_probability') else '—':>12}"
         out.append(line)

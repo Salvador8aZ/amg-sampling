@@ -29,9 +29,7 @@ def by_string(dist):
 
 
 @pytest.mark.parametrize("space", SPACES, ids=lambda s: s.value)
-@pytest.mark.parametrize(
-    "n", [1, 2, 3, 4, 5, pytest.param(6, marks=pytest.mark.slow)]
-)
+@pytest.mark.parametrize("n", [1, 2, 3, 4, 5, pytest.param(6, marks=pytest.mark.slow)])
 def test_state_set_matches_reference(n, space):
     # Every DSB distribution with n DSBs; compare the SET of states, not only counts.
     for breaks in compositions(n):
@@ -51,7 +49,9 @@ def test_every_state_is_a_member(breaks, space):
 
 def test_order_is_deterministic():
     theta = InitialConfiguration((2, 2))
-    assert list(iter_states(theta, StateSpace.ALL)) == list(iter_states(theta, StateSpace.ALL))
+    assert list(iter_states(theta, StateSpace.ALL)) == list(
+        iter_states(theta, StateSpace.ALL)
+    )
 
 
 def test_iter_states_is_lazy():
@@ -116,7 +116,10 @@ def test_distribution_includes_c1_in_all():
 def test_probabilities_are_exact_fractions():
     theta = InitialConfiguration((2, 2))
     p = probabilities(exact_cycle_distribution(theta, StateSpace.PROPER))
-    assert p == {CycleStructure([4]): Fraction(6, 7), CycleStructure([2, 2]): Fraction(1, 7)}
+    assert p == {
+        CycleStructure([4]): Fraction(6, 7),
+        CycleStructure([2, 2]): Fraction(1, 7),
+    }
     assert sum(p.values()) == 1
 
 
@@ -134,12 +137,16 @@ LAYOUTS = {
 }
 
 
-@pytest.mark.parametrize("space", [StateSpace.ALL, StateSpace.DERANGED], ids=lambda s: s.value)
+@pytest.mark.parametrize(
+    "space", [StateSpace.ALL, StateSpace.DERANGED], ids=lambda s: s.value
+)
 @pytest.mark.parametrize("n", [4, 5])
 def test_all_and_deranged_do_not_depend_on_layout(n, space):
     # PROVED: ALL and DERANGED are the same set of matchings for every Θ with
     # the same n, and the cycle structure depends only on (d, r).
-    dists = [exact_cycle_distribution(InitialConfiguration(b), space) for b in LAYOUTS[n]]
+    dists = [
+        exact_cycle_distribution(InitialConfiguration(b), space) for b in LAYOUTS[n]
+    ]
     assert all(d == dists[0] for d in dists)
     states = [set(iter_states(InitialConfiguration(b), space)) for b in LAYOUTS[n]]
     assert all(s == states[0] for s in states)
@@ -148,17 +155,27 @@ def test_all_and_deranged_do_not_depend_on_layout(n, space):
 @pytest.mark.parametrize("n", [4, 5])
 def test_proper_depends_on_layout(n):
     dists = {
-        b: by_string(exact_cycle_distribution(InitialConfiguration(b), StateSpace.PROPER))
+        b: by_string(
+            exact_cycle_distribution(InitialConfiguration(b), StateSpace.PROPER)
+        )
         for b in LAYOUTS[n]
     }
     assert len({tuple(sorted(d.items())) for d in dists.values()}) > 1
     # Normalised probabilities differ too, not only the totals.
-    p = {b: probabilities(exact_cycle_distribution(InitialConfiguration(b), StateSpace.PROPER))
-         for b in LAYOUTS[n]}
-    assert len({tuple(sorted((str(c), q) for c, q in v.items())) for v in p.values()}) > 1
+    p = {
+        b: probabilities(
+            exact_cycle_distribution(InitialConfiguration(b), StateSpace.PROPER)
+        )
+        for b in LAYOUTS[n]
+    }
+    assert (
+        len({tuple(sorted((str(c), q) for c, q in v.items())) for v in p.values()}) > 1
+    )
 
 
 @pytest.mark.parametrize("n", [4, 5])
 def test_single_chromosome_proper_equals_deranged(n):
     theta = InitialConfiguration([n])
-    assert set(iter_states(theta, StateSpace.PROPER)) == set(iter_states(theta, StateSpace.DERANGED))
+    assert set(iter_states(theta, StateSpace.PROPER)) == set(
+        iter_states(theta, StateSpace.DERANGED)
+    )

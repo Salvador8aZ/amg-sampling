@@ -31,7 +31,10 @@ def normalise(counts):
 
 def sampled_structures(breaks, space, seed):
     theta = InitialConfiguration(breaks)
-    return [cycle_structure(theta, r) for r in iter_samples(theta, space, random.Random(seed), SAMPLES)]
+    return [
+        cycle_structure(theta, r)
+        for r in iter_samples(theta, space, random.Random(seed), SAMPLES)
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -48,9 +51,23 @@ def all_states():
 @pytest.mark.parametrize(
     "name, exact, summary",
     [
-        ("cycles", lambda: cycle_count_distribution(N_DSBS, StateSpace.DERANGED), lambda c: c.num_cycles),
-        ("largest", lambda: largest_cycle_distribution(N_DSBS, StateSpace.DERANGED), lambda c: c.parts[0]),
-        ("C2", lambda: cycle_length_multiplicity_distribution(N_DSBS, 2, StateSpace.DERANGED), lambda c: c.count(2)),
+        (
+            "cycles",
+            lambda: cycle_count_distribution(N_DSBS, StateSpace.DERANGED),
+            lambda c: c.num_cycles,
+        ),
+        (
+            "largest",
+            lambda: largest_cycle_distribution(N_DSBS, StateSpace.DERANGED),
+            lambda c: c.parts[0],
+        ),
+        (
+            "C2",
+            lambda: cycle_length_multiplicity_distribution(
+                N_DSBS, 2, StateSpace.DERANGED
+            ),
+            lambda c: c.count(2),
+        ),
     ],
 )
 def test_single_chromosome_summaries(single_chromosome_proper, name, exact, summary):
@@ -62,10 +79,26 @@ def test_single_chromosome_summaries(single_chromosome_proper, name, exact, summ
 @pytest.mark.parametrize(
     "name, exact, summary",
     [
-        ("cycles", lambda: cycle_count_distribution(N_DSBS, StateSpace.ALL), lambda c: c.num_cycles),
-        ("largest", lambda: largest_cycle_distribution(N_DSBS, StateSpace.ALL), lambda c: c.parts[0]),
-        ("C1", lambda: cycle_length_multiplicity_distribution(N_DSBS, 1, StateSpace.ALL), lambda c: c.count(1)),
-        ("C2", lambda: cycle_length_multiplicity_distribution(N_DSBS, 2, StateSpace.ALL), lambda c: c.count(2)),
+        (
+            "cycles",
+            lambda: cycle_count_distribution(N_DSBS, StateSpace.ALL),
+            lambda c: c.num_cycles,
+        ),
+        (
+            "largest",
+            lambda: largest_cycle_distribution(N_DSBS, StateSpace.ALL),
+            lambda c: c.parts[0],
+        ),
+        (
+            "C1",
+            lambda: cycle_length_multiplicity_distribution(N_DSBS, 1, StateSpace.ALL),
+            lambda c: c.count(1),
+        ),
+        (
+            "C2",
+            lambda: cycle_length_multiplicity_distribution(N_DSBS, 2, StateSpace.ALL),
+            lambda c: c.count(2),
+        ),
     ],
 )
 def test_all_summaries(all_states, name, exact, summary):
@@ -100,6 +133,8 @@ def test_sampled_cycle_count_mean_and_variance(all_states):
     # with the exact fourth central moment taken from the exact distribution.
     dist = cycle_count_distribution(N_DSBS, StateSpace.ALL)
     total = num_all_states(N_DSBS)
-    mu4 = float(sum(Fraction(m_ * (c - Fraction(mean)) ** 4, total) for c, m_ in dist.items()))
+    mu4 = float(
+        sum(Fraction(m_ * (c - Fraction(mean)) ** 4, total) for c, m_ in dist.items())
+    )
     sample_var = sum((k - sample_mean) ** 2 for k in ks) / (m - 1)
     assert abs(sample_var - var) / math.sqrt((mu4 - var**2) / m) < Z_LIMIT

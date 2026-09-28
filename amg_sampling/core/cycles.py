@@ -18,11 +18,15 @@ merged because the DSB and rejoin relations are stored separately.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
 
 from amg_sampling.core.configuration import InitialConfiguration
-from amg_sampling.core.matching import RejoinMatching, require_compatible, validate_partner_map
+from amg_sampling.core.matching import (
+    RejoinMatching,
+    require_compatible,
+    validate_partner_map,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,7 +53,9 @@ class CycleStructure:
         parts: list[int] = []
         for length, count in multiplicities.items():
             if isinstance(count, bool) or not isinstance(count, int) or count < 0:
-                raise ValueError(f"Multiplicities must be non-negative integers, got {count!r}.")
+                raise ValueError(
+                    f"Multiplicities must be non-negative integers, got {count!r}."
+                )
             parts += [length] * count
         return cls(parts)
 
@@ -77,9 +83,13 @@ class CycleStructure:
         return self.parts.count(length)
 
     def __str__(self) -> str:
-        return "+".join(
-            f"{m}C{l}" if m > 1 else f"C{l}" for l, m in self.multiplicities().items()
-        ) or "∅"
+        return (
+            "+".join(
+                f"{m}C{l}" if m > 1 else f"C{l}"
+                for l, m in self.multiplicities().items()
+            )
+            or "∅"
+        )
 
 
 def _exchange_cycle_lengths(dsb: Sequence[int], rejoin: Sequence[int]) -> list[int]:
@@ -100,7 +110,9 @@ def _exchange_cycle_lengths(dsb: Sequence[int], rejoin: Sequence[int]) -> list[i
     return lengths
 
 
-def exchange_cycles(dsb: Sequence[int], rejoin: Sequence[int]) -> tuple[tuple[int, ...], ...]:
+def exchange_cycles(
+    dsb: Sequence[int], rejoin: Sequence[int]
+) -> tuple[tuple[int, ...], ...]:
     """Vertex sequences of the cycles of Ξ.
 
     Each cycle starts at its smallest end ``v`` and follows
@@ -128,7 +140,9 @@ def exchange_cycles(dsb: Sequence[int], rejoin: Sequence[int]) -> tuple[tuple[in
     return tuple(cycles)
 
 
-def cycle_structure_from_partners(dsb: Sequence[int], rejoin: Sequence[int]) -> CycleStructure:
+def cycle_structure_from_partners(
+    dsb: Sequence[int], rejoin: Sequence[int]
+) -> CycleStructure:
     """Cycle structure of the union of two perfect matchings on the same ends."""
     validate_partner_map(dsb)
     validate_partner_map(rejoin)
@@ -137,23 +151,32 @@ def cycle_structure_from_partners(dsb: Sequence[int], rejoin: Sequence[int]) -> 
     return CycleStructure(_exchange_cycle_lengths(dsb, rejoin))
 
 
-def cycle_structure(theta: InitialConfiguration, matching: RejoinMatching) -> CycleStructure:
-    """Cycle structure C(Ω) of the AMG with initial configuration ``theta`` and rejoins ``matching``.
+def cycle_structure(
+    theta: InitialConfiguration, matching: RejoinMatching
+) -> CycleStructure:
+    """Cycle structure C(Ω) of the AMG with initial configuration ``theta`` and
+    rejoins ``matching``.
 
     Depends only on the DSB and rejoin matchings, not on the chromosome layout.
     """
     require_compatible(theta, matching)
-    return CycleStructure(_exchange_cycle_lengths(theta.dsb_partners, matching.partners))
+    return CycleStructure(
+        _exchange_cycle_lengths(theta.dsb_partners, matching.partners)
+    )
 
 
-def repaired_dsbs(theta: InitialConfiguration, matching: RejoinMatching) -> tuple[int, ...]:
+def repaired_dsbs(
+    theta: InitialConfiguration, matching: RejoinMatching
+) -> tuple[int, ...]:
     """DSBs whose two ends are rejoined to each other; each is a ``C_1`` cycle."""
     require_compatible(theta, matching)
     r = matching.partners
     return tuple(j for j in range(theta.num_dsbs) if r[2 * j] == 2 * j + 1)
 
 
-def ring_fragments(theta: InitialConfiguration, matching: RejoinMatching) -> tuple[int, ...]:
+def ring_fragments(
+    theta: InitialConfiguration, matching: RejoinMatching
+) -> tuple[int, ...]:
     """Indices into ``theta.fragments`` of fragments closed into a ring.
 
     Fragment ``(a, b)`` is a ring when its two ends are rejoined to each other,

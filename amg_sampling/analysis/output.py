@@ -18,7 +18,9 @@ CSV_TABLES = {
 
 
 def write_results(results: dict, directory: str | Path) -> list[Path]:
-    """Write ``results.json`` and every applicable CSV table; return the paths written."""
+    """Write ``results.json`` and every applicable CSV table; return the paths
+    written.
+    """
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     written = [directory / "results.json"]

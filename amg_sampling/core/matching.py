@@ -12,7 +12,8 @@ decided in :mod:`amg_sampling.core.statespace`.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from amg_sampling.core.configuration import InitialConfiguration
@@ -23,10 +24,14 @@ class InvalidMatchingError(ValueError):
 
 
 def validate_partner_map(partners: Sequence[int]) -> None:
-    """Check that ``partners`` is a fixed-point-free involution on ``range(len(partners))``."""
+    """Check that ``partners`` is a fixed-point-free involution on
+    ``range(len(partners))``.
+    """
     m = len(partners)
     if m % 2:
-        raise InvalidMatchingError(f"A perfect matching needs an even number of ends, got {m}.")
+        raise InvalidMatchingError(
+            f"A perfect matching needs an even number of ends, got {m}."
+        )
     for v, w in enumerate(partners):
         if isinstance(w, bool) or not isinstance(w, int):
             raise InvalidMatchingError(f"Partner of end {v} is not an integer: {w!r}.")
@@ -51,15 +56,23 @@ class RejoinMatching:
         self._partners = partners
 
     @classmethod
-    def from_pairs(cls, num_ends: int, pairs: Iterable[tuple[int, int]]) -> RejoinMatching:
-        """Build from rejoin edges. Every end in ``range(num_ends)`` must occur exactly once."""
+    def from_pairs(
+        cls, num_ends: int, pairs: Iterable[tuple[int, int]]
+    ) -> RejoinMatching:
+        """Build from rejoin edges. Every end in ``range(num_ends)`` must occur
+        exactly once.
+        """
         partners: list[int | None] = [None] * num_ends
         for u, v in pairs:
             for x in (u, v):
                 if not 0 <= x < num_ends:
-                    raise InvalidMatchingError(f"End {x} is out of range for {num_ends} ends.")
+                    raise InvalidMatchingError(
+                        f"End {x} is out of range for {num_ends} ends."
+                    )
                 if partners[x] is not None:
-                    raise InvalidMatchingError(f"End {x} occurs in more than one rejoin edge.")
+                    raise InvalidMatchingError(
+                        f"End {x} occurs in more than one rejoin edge."
+                    )
             if u == v:
                 raise InvalidMatchingError(f"End {u} is matched to itself.")
             partners[u], partners[v] = v, u
@@ -120,10 +133,13 @@ class RejoinMatching:
 
 
 def require_compatible(theta: InitialConfiguration, matching: RejoinMatching) -> None:
-    """Raise ``ValueError`` unless ``matching`` is defined on the free ends of ``theta``."""
+    """Raise ``ValueError`` unless ``matching`` is defined on the free ends of
+    ``theta``.
+    """
     if matching.num_ends != theta.num_ends:
         raise ValueError(
-            f"Matching has {matching.num_ends} ends but Θ{theta.breaks} has {theta.num_ends}."
+            f"Matching has {matching.num_ends} ends but Θ{theta.breaks} has "
+            f"{theta.num_ends}."
         )
 
 
@@ -138,16 +154,31 @@ class PartialMatching:
     __slots__ = ("_num_ends", "_pairs", "_partner")
 
     def __init__(self, num_ends: int, pairs: Iterable[tuple[int, int]] = ()):
-        if isinstance(num_ends, bool) or not isinstance(num_ends, int) or num_ends < 0 or num_ends % 2:
-            raise InvalidMatchingError(f"num_ends must be a non-negative even integer, got {num_ends!r}.")
+        if (
+            isinstance(num_ends, bool)
+            or not isinstance(num_ends, int)
+            or num_ends < 0
+            or num_ends % 2
+        ):
+            raise InvalidMatchingError(
+                f"num_ends must be a non-negative even integer, got {num_ends!r}."
+            )
         pairs = tuple(pairs)  # may be a one-shot iterator; it is traversed twice below
         partner: dict[int, int] = {}
         for u, v in pairs:
             for x in (u, v):
-                if isinstance(x, bool) or not isinstance(x, int) or not 0 <= x < num_ends:
-                    raise InvalidMatchingError(f"End {x!r} is out of range for {num_ends} ends.")
+                if (
+                    isinstance(x, bool)
+                    or not isinstance(x, int)
+                    or not 0 <= x < num_ends
+                ):
+                    raise InvalidMatchingError(
+                        f"End {x!r} is out of range for {num_ends} ends."
+                    )
                 if x in partner:
-                    raise InvalidMatchingError(f"End {x} occurs in more than one fixed edge.")
+                    raise InvalidMatchingError(
+                        f"End {x} occurs in more than one fixed edge."
+                    )
             if u == v:
                 raise InvalidMatchingError(f"End {u} is matched to itself.")
             partner[u], partner[v] = v, u

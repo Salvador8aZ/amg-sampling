@@ -6,7 +6,11 @@ from amg_sampling.samplers.rejection import (
     sample_state,
     theoretical_acceptance,
 )
-from amg_sampling.samplers.uniform import matching_from_ordering, sample_completion, sample_matching
+from amg_sampling.samplers.uniform import (
+    matching_from_ordering,
+    sample_completion,
+    sample_matching,
+)
 
 __all__ = [
     "SamplingStats",

@@ -12,9 +12,9 @@ on ``{states of the space containing every fixed edge}`` (§9).
 from __future__ import annotations
 
 import random
+from collections.abc import Iterator
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Iterator
 
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.matching import PartialMatching, RejoinMatching
@@ -63,7 +63,10 @@ def sample_state(
     """
     _check_nonempty(theta, space)
     if fixed is not None and fixed.num_ends != theta.num_ends:
-        raise ValueError(f"Fixed rejoins are on {fixed.num_ends} ends but Θ{theta.breaks} has {theta.num_ends}.")
+        raise ValueError(
+            f"Fixed rejoins are on {fixed.num_ends} ends but Θ{theta.breaks} "
+            f"has {theta.num_ends}."
+        )
     n = theta.num_dsbs
     proposals = 0
     while max_proposals is None or proposals < max_proposals:
@@ -75,7 +78,9 @@ def sample_state(
             stats.accepted += accepted
         if accepted:
             return r
-    raise RuntimeError(f"No state of {space.value} accepted in {max_proposals} proposals.")
+    raise RuntimeError(
+        f"No state of {space.value} accepted in {max_proposals} proposals."
+    )
 
 
 def iter_samples(
@@ -88,7 +93,8 @@ def iter_samples(
     max_proposals_per_sample: int | None = None,
     fixed: PartialMatching | None = None,
 ) -> Iterator[RejoinMatching]:
-    """Yield ``count`` IID uniform states of ``space(Θ)`` (unbounded if ``count`` is None).
+    """Yield ``count`` IID uniform states of ``space(Θ)`` (unbounded if
+    ``count`` is None).
 
     With ``fixed``, states are uniform among those containing every fixed edge.
     """
@@ -96,7 +102,12 @@ def iter_samples(
     produced = 0
     while count is None or produced < count:
         yield sample_state(
-            theta, space, rng, stats=stats, max_proposals=max_proposals_per_sample, fixed=fixed
+            theta,
+            space,
+            rng,
+            stats=stats,
+            max_proposals=max_proposals_per_sample,
+            fixed=fixed,
         )
         produced += 1
 
@@ -124,7 +135,8 @@ def theoretical_acceptance(
         return Fraction(num_single_cycle_states(n) if n >= 2 else 0, total)
     if theta.num_chromosomes > max_chromosomes:
         raise ValueError(
-            f"|PROPER| for k = {theta.num_chromosomes} chromosomes needs the O(3^k) recursion; "
+            f"|PROPER| for k = {theta.num_chromosomes} chromosomes needs the "
+            "O(3^k) recursion; "
             f"raise max_chromosomes (currently {max_chromosomes}) to attempt it."
         )
     return Fraction(num_proper_states(theta), total)
@@ -134,4 +146,6 @@ def _check_nonempty(theta: InitialConfiguration, space: StateSpace) -> None:
     # DERANGED and PROPER are empty iff n = 1: for n >= 2 every single-cycle
     # state C_n is proper (docs/theory/exact.md §5, P3).
     if space is not StateSpace.ALL and theta.num_dsbs == 1:
-        raise ValueError(f"{space.value} is empty for Θ{theta.breaks}; rejection would never stop.")
+        raise ValueError(
+            f"{space.value} is empty for Θ{theta.breaks}; rejection would never stop."
+        )

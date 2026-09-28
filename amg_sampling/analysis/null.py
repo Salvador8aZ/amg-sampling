@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import random
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Sequence
 
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import CycleStructure, cycle_structure
@@ -41,13 +41,20 @@ def sample_null(
     fixed: PartialMatching | None = None,
     max_proposals_per_sample: int | None = None,
 ) -> NullSample:
-    """Sample and count cycle structures, hits of each tracked edge, and hits of all of them."""
+    """Sample and count cycle structures, hits of each tracked edge, and hits of all of
+    them.
+    """
     if num_samples <= 0:
         raise ValueError("num_samples must be positive.")
     stats = SamplingStats()
     result = NullSample(num_samples, stats, edge_hits=[0] * len(track_edges))
     for r in iter_samples(
-        theta, space, rng, num_samples, stats=stats, fixed=fixed,
+        theta,
+        space,
+        rng,
+        num_samples,
+        stats=stats,
+        fixed=fixed,
         max_proposals_per_sample=max_proposals_per_sample,
     ):
         result.cycle_structures[cycle_structure(theta, r)] += 1
