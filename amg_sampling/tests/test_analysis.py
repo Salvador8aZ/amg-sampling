@@ -4,10 +4,10 @@ import csv
 import json
 import math
 from fractions import Fraction
-from pathlib import Path
 
 import pytest
 
+from amg_sampling import directories
 from amg_sampling.analysis.estimates import ProportionEstimate, format_probability
 from amg_sampling.analysis.output import write_results
 from amg_sampling.analysis.plots import make_plots
@@ -26,7 +26,7 @@ from amg_sampling.core.statespace import StateSpace
 from amg_sampling.data.sheth import convert, load_dataset
 from amg_sampling.exact.enumerate import exact_cycle_distribution, iter_states
 
-SYNTHETIC = Path(__file__).parent / "test_data" / "synthetic_sheth.csv"
+SYNTHETIC = directories.test_data("synthetic_sheth.csv")
 PROPER = StateSpace.PROPER
 
 
