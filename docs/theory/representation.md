@@ -139,10 +139,15 @@ name its state space explicitly.
 These appeared in planning discussions. They must be derived, checked
 exhaustively for small `n`, and labelled before any code depends on them.
 
-1. Every state has exactly `n(n−1)` distinct 2-switch neighbours.
-2. Every 2-switch neighbour arises from exactly four ordered endpoint pairs `(u, v)`.
-3. The resulting switch proposal kernel is symmetric on `ALL`.
-4. The switch graph restricted to `DERANGED` or `PROPER` is connected. (CONJECTURE)
+1. ~~Every state has exactly `n(n−1)` distinct 2-switch neighbours.~~ **Now
+   PROVED** in [`mcmc.md`](mcmc.md) §1.
+2. ~~Every 2-switch neighbour arises from exactly four ordered endpoint pairs
+   `(u, v)`.~~ **Now PROVED** in [`mcmc.md`](mcmc.md) §1.
+3. ~~The resulting switch proposal kernel is symmetric on `ALL`.~~ **Now
+   PROVED** in [`mcmc.md`](mcmc.md) §1, also with fixed rejoins.
+4. The switch graph restricted to `DERANGED` or `PROPER` is connected. **Now
+   VERIFIED(n ≤ 6)** in [`mcmc.md`](mcmc.md) §2, and still a CONJECTURE for
+   larger `n`.
 5. The set of ring fragments is invariant under reversals (an argument was
    sketched during planning; it will be written up with the reversal move).
 6. IID rejection acceptance rates: `|DERANGED| / |ALL| → e^{−1/2}` for large `n`,
