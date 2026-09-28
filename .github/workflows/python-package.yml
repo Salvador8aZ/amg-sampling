@@ -1,0 +1,78 @@
+name: Python package
+
+on:
+  push:
+    branches: [ "template", "main" ]
+  pull_request:
+    branches: [ "template", "main" ]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref instead of paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    env:
+      # Derandomised Hypothesis runs; see amg_sampling/tests/conftest.py.
+      HYPOTHESIS_PROFILE: ci
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 2.4.3
+        virtualenvs-create: true
+        # In-project so the virtualenv can be cached by path below. Local
+        # development uses a conda environment and is unaffected by this.
+        virtualenvs-in-project: true
+
+    - name: Restore cached virtualenv
+      uses: actions/cache@v6
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('poetry.lock') }}
+
+    # --only main,dev is explicit so that adding an optional group later cannot
+    # silently start installing it in CI.
+    - name: Install dependencies
+      run: poetry install --only main,dev
+
+    - name: Check formatting
+      run: make format-check
+
+    - name: Lint
+      run: make lint
+
+    - name: Run tests
+      run: make test
+
+    - name: Coverage check
+      run: make coverage
+
+    - name: Optional dependency boundaries
+      run: make import-boundaries
+
+    - name: Dependency declarations
+      run: make deps-check
+
+    # Builds a wheel and runs the shipped tests against the installed package,
+    # catching packaging errors that a source-tree test run cannot see.
+    - name: Test the built wheel
+      run: make test-wheel
