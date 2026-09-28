@@ -220,6 +220,18 @@ def _observed_sections(results, add):
         )
 
 
+def _sequence_features(row) -> str:
+    """``; homology 11 bp; insertion 0 bp`` for junctions whose features are known."""
+    parts = []
+    for key, name in (
+        ("homology_length", "homology"),
+        ("foreign_sequence_length", "insertion"),
+    ):
+        if row.get(key) is not None:
+            parts.append(f"{name} {row[key]} bp")
+    return "".join(f"; {p}" for p in parts)
+
+
 def _rejoin_sections(results, add):
     add("")
     add("Observed rejoin edges: probability of each edge under the null")
@@ -228,7 +240,7 @@ def _rejoin_sections(results, add):
         add(f"  {r['edge']:<4} {r['site_a']:>26} — {r['site_b']:<26} {text}")
         add(
             f"       [{r['status']}; source line {r['source_line']}; "
-            f"class {r['sv_class']}]"
+            f"class {r['sv_class']}{_sequence_features(r)}]"
         )
     joint = results.get("joint_observed_rejoins")
     if joint:

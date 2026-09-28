@@ -274,6 +274,15 @@ def test_report_mentions_the_null_and_its_interpretation(observed_results):
     assert "not biological" in text
 
 
+def test_report_shows_known_sequence_features(observed_results):
+    # The synthetic file has no sequence-feature columns, so nothing is shown.
+    assert "homology" not in format_report(observed_results)
+    results = json.loads(json.dumps(observed_results))
+    results["rejoins"][0].update(homology_length=11, foreign_sequence_length=0)
+    text = format_report(results)
+    assert "class inter_chr; homology 11 bp; insertion 0 bp]" in text
+
+
 def test_plots(tmp_path, observed_results):
     pytest.importorskip("matplotlib")
     written = {p.name for p in make_plots(observed_results, tmp_path)}

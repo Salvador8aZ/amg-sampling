@@ -51,6 +51,45 @@ def test_load_synthetic_dataset():
     assert ds.patients["SYN-1"].chromosomes == (1, 2)
 
 
+def test_sequence_features_are_none_when_the_columns_are_absent():
+    for patient in load_dataset(SYNTHETIC).patients.values():
+        for v in patient.variants:
+            assert v.homology_length is None
+            assert v.foreign_sequence_length is None
+
+
+def with_sequence_features(values):
+    """The synthetic file with homology / foreign-sequence columns added."""
+    lines = SYNTHETIC.read_text(encoding="utf-8-sig").splitlines()
+    header = lines[0] + ",Homology length,Foreign sequence length"
+    rows = [f"{line},{h},{f}" for line, (h, f) in zip(lines[1:], values)]
+    return "\n".join([header, *rows]) + "\n"
+
+
+def test_sequence_features_are_parsed(tmp_path):
+    values = [("0", "1"), ("11", "0"), ("-1", "-1"), ("", ""), ("2", "27")]
+    values += [("NaN", "NaN"), ("0", "0")]
+    path = tmp_path / "features.csv"
+    path.write_text(with_sequence_features(values), encoding="utf-8")
+    variants = [v for p in load_dataset(path).patients.values() for v in p.variants]
+    got = [(v.homology_length, v.foreign_sequence_length) for v in variants]
+    # -1 ("failed" assembly), empty and NaN cells are "not measured", never 0.
+    assert got[:6] == [(0, 1), (11, 0), (None, None), (None, None), (2, 27)] + [
+        (None, None)
+    ]
+
+
+@pytest.mark.parametrize(
+    "value, message",
+    [("abc", "not an integer"), ("-2", "must be -1 or non-negative")],
+)
+def test_malformed_sequence_features_are_rejected(tmp_path, value, message):
+    path = tmp_path / "bad.csv"
+    path.write_text(with_sequence_features([(value, "0")] * 7), encoding="utf-8")
+    with pytest.raises(DatasetFormatError, match=message):
+        load_dataset(path)
+
+
 def test_missing_file_explains_where_to_get_data(tmp_path):
     with pytest.raises(FileNotFoundError, match="docs/data.md"):
         load_dataset(tmp_path / "absent.csv")
@@ -188,6 +227,19 @@ def test_real_dataset_is_the_reference_copy():
     assert ds.source.sha256 == REFERENCE_SHA256
     assert ds.source.rows == 5710
     assert len(ds.patients) == 57
+
+
+@needs_real_data
+def test_real_sequence_features():
+    ds = load_dataset(REAL)
+    variants = [v for p in ds.patients.values() for v in p.variants]
+    # 124 junctions have -1 in both columns (sequence assembly failed) and one
+    # (source line 5573) has NaN in both.
+    assert sum(v.homology_length is None for v in variants) == 125
+    assert sum(v.foreign_sequence_length is None for v in variants) == 125
+    p05 = ds.patients["P05-1657"].variants
+    assert [v.homology_length for v in p05] == [0, 1, 4, 0, 11, 0, 2, 2, 3]
+    assert [v.foreign_sequence_length for v in p05] == [0] * 9
 
 
 @needs_real_data

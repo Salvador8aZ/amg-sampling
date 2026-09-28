@@ -54,6 +54,18 @@ See `amg_sampling/data/sheth/models.py`. From each row:
 | `Breakpoint 1/2 position` | breakpoint base-pair position |
 | `Breakpoint 1/2 strand` | `+` or `-` |
 | `Class` | reported rearrangement class (provenance only) |
+| `Homology length` | base pairs of microhomology at the junction (optional; reported, not used by the model) |
+| `Foreign sequence length` | base pairs of non-templated sequence inserted at the junction (optional; reported, not used by the model) |
+
+The two sequence-feature columns may be absent (the file still loads). In the
+reference copy, 124 junctions have `-1` in both columns, with `Foreign
+sequence` = `failed`: the junction sequence could not be assembled. One
+junction (line 5573) has `NaN` in both. All of these are stored as "not
+measured", never as 0. The features hint at the repair mechanism (for
+example, microhomology of a few base pairs is typical of
+microhomology-mediated end joining). They are carried with every observed
+junction, in `results.json`, `rejoin_probabilities.csv` and the terminal
+report, for future biologically weighted models.
 
 The CSV line number of every junction is kept and reported with each edge.
 

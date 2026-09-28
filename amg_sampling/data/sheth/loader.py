@@ -34,6 +34,14 @@ REQUIRED_COLUMNS = (
     "Class",
 )
 
+# Optional junction-sequence features. -1 in the source means the junction
+# sequence could not be assembled; it, NaN and empty cells are read as None
+# ("not measured").
+OPTIONAL_LENGTH_COLUMNS = {
+    "homology_length": "Homology length",
+    "foreign_sequence_length": "Foreign sequence length",
+}
+
 
 class DatasetFormatError(ValueError):
     """The file does not have the expected columns or values."""
@@ -78,6 +86,10 @@ def load_dataset(path: str | os.PathLike) -> ShethDataset:
                 breakpoint_1=_breakpoint(row, 1, line),
                 breakpoint_2=_breakpoint(row, 2, line),
                 sv_class=row["Class"].strip(),
+                **{
+                    field: _optional_length(row, column, line)
+                    for field, column in OPTIONAL_LENGTH_COLUMNS.items()
+                },
             )
             patients.setdefault(row["Individual"].strip(), []).append(variant)
     sha = file_sha256(path)
@@ -95,6 +107,24 @@ def _integer(row: dict, column: str, line: int) -> int:
         raise DatasetFormatError(
             f"line {line}: column {column!r} is not an integer: {value!r}."
         ) from None
+
+
+def _optional_length(row: dict, column: str, line: int) -> int | None:
+    """A non-negative length, or ``None`` if the column is absent, empty, NaN or -1."""
+    value = (row.get(column) or "").strip()
+    if value in ("", "-1") or value.lower() == "nan":
+        return None
+    try:
+        length = int(value)
+    except ValueError:
+        raise DatasetFormatError(
+            f"line {line}: column {column!r} is not an integer: {value!r}."
+        ) from None
+    if length < 0:
+        raise DatasetFormatError(
+            f"line {line}: column {column!r} must be -1 or non-negative, got {length}."
+        )
+    return length
 
 
 def _breakpoint(row: dict, which: int, line: int) -> Breakpoint:
