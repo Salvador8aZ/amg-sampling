@@ -1,6 +1,6 @@
 # Demonstration script (5–10 minutes)
 
-Before the meeting: run `uv sync --extra plots`, import the data
+Before the meeting: run `poetry install --extras plots`, import the data
 (`docs/data.md`), and run each command once so nothing is downloaded live.
 
 ## 1. The question (1 min)
@@ -30,7 +30,7 @@ Before the meeting: run `uv sync --extra plots`, import the data
 ## 3. Synthetic run (2 min)
 
 ```bash
-uv run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
+poetry run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
     statespace=proper sampler=iid sampler.num_samples=100000 analysis=distribution seed=42
 ```
 
@@ -54,8 +54,8 @@ of the paper.
 ## 4. The patient (3 min)
 
 ```bash
-uv run amg-sampling patients --patient P05-1657
-uv run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
+poetry run amg-sampling patients --patient P05-1657
+poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=iid analysis=observed seed=42
 ```
 

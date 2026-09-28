@@ -33,7 +33,7 @@ so **this repository does not include the data**. `data/external/` is in
    to `data/external/nihms.csv`:
 
    ```bash
-   uv run amg-sampling import-data aberration_multigraph/data/nihms.csv
+   poetry run amg-sampling import-data aberration_multigraph/data/nihms.csv
    ```
 
    Alternatively set `AMG_SHETH_DATA=/path/to/nihms.csv`, or pass
