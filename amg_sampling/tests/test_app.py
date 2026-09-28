@@ -3,16 +3,16 @@
 import json
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 from hydra import compose, initialize_config_module
 
+from amg_sampling import directories
 from amg_sampling.app import build_problem, execute
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.data.sheth import default_data_path
 
-SYNTHETIC = Path(__file__).parent / "test_data" / "synthetic_sheth.csv"
+SYNTHETIC = directories.test_data("synthetic_sheth.csv")
 REAL = default_data_path()
 
 

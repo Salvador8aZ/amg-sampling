@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from amg_sampling import directories
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import cycle_structure
 from amg_sampling.core.matching import PartialMatching
@@ -19,7 +20,7 @@ from amg_sampling.data.sheth import (
 from amg_sampling.exact.enumerate import count_states, exact_cycle_distribution
 from amg_sampling.tests.paper_patient import P05_1657, TABLE_2
 
-SYNTHETIC = Path(__file__).parent / "test_data" / "synthetic_sheth.csv"
+SYNTHETIC = directories.test_data("synthetic_sheth.csv")
 REAL = default_data_path()
 needs_real_data = pytest.mark.skipif(
     not REAL.is_file(), reason=f"Sheth dataset not available at {REAL} (see docs/data.md)"
