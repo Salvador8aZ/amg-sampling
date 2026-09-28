@@ -22,7 +22,19 @@ Field                         Source column
 ``breakpoint_1.position``     ``Breakpoint 1 position`` (integer base pair)
 ``breakpoint_2.*``            the corresponding ``Breakpoint 2`` columns
 ``sv_class``                  ``Class`` (e.g. ``inter_chr``, ``inversion``)
+``homology_length``           ``Homology length``: base pairs of
+                              microhomology at the junction
+``foreign_sequence_length``   ``Foreign sequence length``: base pairs of
+                              non-templated sequence inserted at the junction
 ============================  ===========================================
+
+The two sequence-feature columns are optional: a file without them loads, and
+the fields are ``None``. The source writes ``-1`` in both columns (with
+``Foreign sequence`` = ``failed``) when the junction sequence could not be
+assembled; that, ``NaN`` and empty cells are stored as ``None``, meaning "not
+measured", never as 0.
+The combinatorial model does not use these fields; they are carried with each
+junction for reporting and for future biologically weighted models.
 
 Other columns (read support, annotations, validation results) are not used by
 the combinatorial model and are not stored.
@@ -51,6 +63,8 @@ class StructuralVariant:
     breakpoint_1: Breakpoint
     breakpoint_2: Breakpoint
     sv_class: str
+    homology_length: int | None = None
+    foreign_sequence_length: int | None = None
 
     @property
     def breakpoints(self) -> tuple[Breakpoint, Breakpoint]:

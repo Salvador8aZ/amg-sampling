@@ -140,6 +140,8 @@ def edge_dict(pc: PatientConfiguration, edge: RejoinEdge, index: int) -> dict:
         "status": edge.status.value,
         "source_line": v.source_line if v else None,
         "sv_class": v.sv_class if v else None,
+        "homology_length": v.homology_length if v else None,
+        "foreign_sequence_length": v.foreign_sequence_length if v else None,
     }
 
 
