@@ -20,6 +20,7 @@ is connected.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
 
 from amg_sampling.core.configuration import InitialConfiguration
@@ -41,6 +42,20 @@ class StateSpace(Enum):
         return _is_deranged(matching.partners) and _is_connected(
             theta, matching.partners
         )
+
+    def contains_partners(
+        self, theta: InitialConfiguration, partners: Sequence[int]
+    ) -> bool:
+        """:meth:`contains` for a raw partner map, without validating it.
+
+        For inner loops such as a Markov chain: the caller guarantees that
+        ``partners`` is a perfect matching on the free ends of ``theta``.
+        """
+        if self is StateSpace.ALL:
+            return True
+        if not _is_deranged(partners):
+            return False
+        return self is StateSpace.DERANGED or _is_connected(theta, partners)
 
 
 def is_deranged(theta: InitialConfiguration, matching: RejoinMatching) -> bool:
@@ -72,18 +87,16 @@ def chromosome_components(
     return tuple(sorted((frozenset(g) for g in groups.values()), key=min))
 
 
-def _is_deranged(r: tuple[int, ...]) -> bool:
+def _is_deranged(r: Sequence[int]) -> bool:
     return all(r[v] != v ^ 1 for v in range(0, len(r), 2))
 
 
-def _is_connected(theta: InitialConfiguration, r: tuple[int, ...]) -> bool:
+def _is_connected(theta: InitialConfiguration, r: Sequence[int]) -> bool:
     parent = _chromosome_union_find(theta, r)
     return len({_find(parent, i) for i in range(theta.num_chromosomes)}) == 1
 
 
-def _chromosome_union_find(
-    theta: InitialConfiguration, r: tuple[int, ...]
-) -> list[int]:
+def _chromosome_union_find(theta: InitialConfiguration, r: Sequence[int]) -> list[int]:
     parent = list(range(theta.num_chromosomes))
     chrom = theta.dsb_chromosome
     for v, w in enumerate(r):
