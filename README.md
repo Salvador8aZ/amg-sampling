@@ -49,43 +49,58 @@ formulas or sampling.
 
 ## Installation
 
-Requires [uv](https://docs.astral.sh/uv/) (`brew install uv`, or see its
-installation page) and Python ≥ 3.11 (uv can install it).
+Requires Python ≥ 3.11 and [Poetry](https://python-poetry.org). Create an
+isolated environment first (venv, Conda or pyenv), then install Poetry into it:
 
 ```bash
-git clone https://github.com/Salvador8aZ/amg-sampling.git   # once published
-cd amg-sampling
-uv sync --extra plots        # installs dependencies (+ matplotlib for figures)
+git clone https://github.com/Salvador8aZ/chromosome.git
+cd chromosome
+python3 -m venv .venv
+source .venv/bin/activate
+pip install poetry
+poetry install --extras plots   # runtime + dev dependencies (+ matplotlib for figures)
 ```
+
+The project defines two dependency groups:
+
+- **dev**: testing and code quality tools (pytest, hypothesis, networkx, ruff,
+  coverage, vulture, deptry). Installed by default, so a fresh clone can run
+  `make check` immediately.
+- **notebook**: Jupyter, JupyterLab, Matplotlib and Seaborn. Marked
+  `optional = true`, so it is installed only with `poetry install --with notebook`.
+
+Install runtime dependencies alone, without dev tooling, with
+`poetry install --only main`. The `plots` extra is what consumers of the
+package install for figures (`pip install "amg_sampling[plots]"`).
 
 The patient data are **not** included; see [docs/data.md](docs/data.md).
 In short:
 
 ```bash
 git clone https://github.com/siddharthsheth/aberration_multigraph ../aberration_multigraph
-uv run amg-sampling import-data ../aberration_multigraph/data/nihms.csv
+poetry run amg-sampling import-data ../aberration_multigraph/data/nihms.csv
 ```
 
 ## Quick start
 
 ```bash
 # 1. Run the test suite (about 1 minute; patient tests skip if the data are absent)
-uv run pytest
+make test
 
 # 2. A synthetic configuration: Θ(5,(20,20,20,20,20)), 100 DSBs, 200 free ends
-uv run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
+poetry run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
     statespace=proper sampler=iid sampler.num_samples=100000 analysis=distribution seed=42
 
 # 3. List the patients in the Sheth dataset, then inspect the demonstration patient
-uv run amg-sampling patients
-uv run amg-sampling patients --patient P05-1657
+poetry run amg-sampling patients
+poetry run amg-sampling patients --patient P05-1657
 
 # 4. The demonstration patient: chromosomes 8 and 12 of P05-1657 vs the uniform null
-uv run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
+poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=iid analysis=observed seed=42
 
 # 5. The same, exact results only (no sampling)
-uv run amg-sampling problem=patient analysis=observed sampler=exact
+poetry run amg-sampling problem=patient analysis=observed sampler=exact
 ```
 
 Command 2 takes about 15 s and command 4 about 3 s on a laptop.
@@ -187,6 +202,9 @@ Results in the theory notes are labelled PROVED, VERIFIED(n ≤ N) or CONJECTURE
 
 ```
 amg_sampling/
+  __init__.py, _version.py   package version, read from the installed metadata
+  directories.py             absolute paths to package, repository, data and test directories
+  py.typed                   marks the package as typed for consumers
   core/        Θ, rejoin matchings, cycle structures, state spaces (pure Python)
   exact/       enumeration, formulas, summary distributions
   samplers/    uniform matchings, completions, IID rejection sampling
@@ -195,17 +213,54 @@ amg_sampling/
   conf/        Hydra configuration groups
   app.py       Hydra application;  cli.py  command-line entry point
   tests/       pytest suite (exact oracles, statistical tests, CLI smoke tests)
+    test_data/ synthetic fixtures (no real patient data)
+data/          repository-level data; external/ holds the dataset and is git-ignored
+notebooks/     Jupyter notebooks for exploration or documentation
+scripts/       development tooling (import_boundaries.py)
 benchmarks/    sampling throughput at n = 80
 docs/          demo, data and theory notes
+.github/       continuous integration and Dependabot
+pyproject.toml project metadata, dependencies and tool configuration
+poetry.lock    dependency lockfile
+Makefile       formatting, linting, testing and coverage commands
 ```
+
+The package directory sits at the repository root rather than under `src/`,
+and the tests live inside it, so they ship with the wheel. `make test-wheel`
+runs them against the installed package.
 
 ## Development
 
+The Makefile runs every tool inside the Poetry environment:
+
+| Command                  | Description                                                        |
+|--------------------------|--------------------------------------------------------------------|
+| `make test`              | Run the test suite.                                                |
+| `make format`            | Apply safe lint fixes, then format, with Ruff.                     |
+| `make format-check`      | Verify formatting without rewriting files. Used by CI.             |
+| `make lint`              | Run Ruff lint checks.                                              |
+| `make check`             | Formatting check, lint and tests. Does not modify files.           |
+| `make coverage`          | Run tests with coverage enforcement.                               |
+| `make coverage-html`     | Create an HTML coverage report.                                    |
+| `make import-boundaries` | Verify optional dependencies stay isolated behind one module.      |
+| `make deps-check`        | Verify imported packages are declared, and in the right group.     |
+| `make deadcode`          | Report unused code. Advisory, not a gate.                          |
+| `make deadcode-baseline` | Baseline existing dead code so only new dead code surfaces.        |
+| `make test-wheel`        | Build a wheel and run the shipped tests against the installed one. |
+
+`make check` deliberately does not reformat. Run `make format` to fix what is
+fixable, then `make check` to verify.
+
+Other useful commands:
+
 ```bash
-uv run pytest -m "not slow"                  # fast subset (~20 s)
-HYPOTHESIS_PROFILE=ci uv run pytest          # as in CI (derandomised)
-uv run python benchmarks/iid_n80.py          # IID sampling throughput at n = 80
+poetry run pytest -m "not slow"                  # fast subset (~20 s)
+HYPOTHESIS_PROFILE=ci poetry run pytest          # as in CI (derandomised)
+poetry run python benchmarks/iid_n80.py          # IID sampling throughput at n = 80
 ```
+
+matplotlib is imported only by `amg_sampling.analysis.plots`, which is the
+boundary that `make import-boundaries` checks for the `plots` extra.
 
 ## License
 
