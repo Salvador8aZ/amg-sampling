@@ -85,28 +85,38 @@ def _patients(data: Path | None, patient_id: str | None) -> int:
             f"\n{patient_id}: {len(patient.variants)} junctions on chromosomes "
             f"{', '.join(map(str, patient.chromosomes))}"
         )
-        print(
-            f"{'chromosomes':<18}{'Θ':<22}{'observed':>9}{'unmatched':>10}"
-            f"{'completions':>14}  status"
-        )
+        rows = []
         for component in chromosome_components(patient):
             chroms = ",".join(map(str, component))
             try:
                 pc = convert(patient, component)
             except ConversionError as error:
-                print(
-                    f"{chroms:<18}{'—':<22}{'':>9}{'':>10}{'':>14}  "
-                    f"not convertible: {error}"
-                )
+                rows.append((chroms, "—", "", "", "", f"not convertible: {error}"))
                 continue
-            completions = num_completions(len(pc.free_ends))
             status = "unique completion" if len(pc.free_ends) <= 2 else "ok"
             if pc.notes:
                 status += f" ({len(pc.notes)} note(s))"
+            rows.append(
+                (
+                    chroms,
+                    pc.describe_theta(),
+                    f"{len(pc.observed):,}",
+                    f"{len(pc.free_ends):,}",
+                    _count(num_completions(len(pc.free_ends))),
+                    status,
+                )
+            )
+        # Columns widen to fit long chromosome lists and Θ labels.
+        w_chroms = max(len("chromosomes"), *(len(r[0]) for r in rows)) + 2
+        w_theta = max(20, *(len(r[1]) for r in rows)) + 2
+        print(
+            f"{'chromosomes':<{w_chroms}}{'Θ':<{w_theta}}{'observed':>9}"
+            f"{'unmatched':>10}{'completions':>14}  status"
+        )
+        for chroms, theta, observed, free, completions, status in rows:
             print(
-                f"{chroms:<18}{pc.describe_theta():<22}{len(pc.observed):>9}"
-                f"{len(pc.free_ends):>10}"
-                f"{completions:>14,}  {status}"
+                f"{chroms:<{w_chroms}}{theta:<{w_theta}}{observed:>9}{free:>10}"
+                f"{completions:>14}  {status}"
             )
         first = ",".join(map(str, chromosome_components(patient)[0]))
         print(
@@ -147,6 +157,18 @@ def _patients(data: Path | None, patient_id: str | None) -> int:
         )
     print("\nDetails of one patient: amg-sampling patients --patient P05-1657")
     return 0
+
+
+def _count(value: int) -> str:
+    """Exact with thousands separators up to 10^12, else ``1.234e+701``.
+
+    Completion counts ``(f−1)!!`` can have hundreds of digits, too large for a
+    float, so the scientific form is built from the decimal digits.
+    """
+    if value < 10**12:
+        return f"{value:,}"
+    digits = str(value)
+    return f"{digits[0]}.{digits[1:4]}e+{len(digits) - 1}"
 
 
 def _import(source: Path, dest: Path) -> int:
