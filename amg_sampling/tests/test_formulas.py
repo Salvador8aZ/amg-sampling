@@ -26,9 +26,9 @@ from amg_sampling.exact.formulas import (
     num_two_cycle_deranged_states,
     unsigned_stirling_first_kind,
 )
-from tests.paper_tables import TABLE_1, TABLE_3
-from tests.reference import compositions
-from tests.strategies import breaks
+from amg_sampling.tests.paper_tables import TABLE_1, TABLE_3
+from amg_sampling.tests.reference import compositions
+from amg_sampling.tests.strategies import breaks
 
 SMALL_N = [1, 2, 3, 4, 5, 6]
 

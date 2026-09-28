@@ -2,7 +2,7 @@
 
 Run with ``uv run python benchmarks/iid_n80.py``. Timings are wall-clock and
 depend on the machine; the sample sizes are chosen for stable timings, not
-for statistical validation (see tests/test_iid_n80.py for that).
+for statistical validation (see amg_sampling/tests/test_iid_n80.py for that).
 """
 
 from __future__ import annotations

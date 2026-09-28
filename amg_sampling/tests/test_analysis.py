@@ -26,7 +26,7 @@ from amg_sampling.core.statespace import StateSpace
 from amg_sampling.data.sheth import convert, load_dataset
 from amg_sampling.exact.enumerate import exact_cycle_distribution, iter_states
 
-SYNTHETIC = Path(__file__).parent / "data" / "synthetic_sheth.csv"
+SYNTHETIC = Path(__file__).parent / "test_data" / "synthetic_sheth.csv"
 PROPER = StateSpace.PROPER
 
 

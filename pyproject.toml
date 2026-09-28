@@ -41,11 +41,10 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/amg_sampling"]
+packages = ["amg_sampling"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
+testpaths = ["amg_sampling/tests"]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
 markers = [
     "slow: exhaustive checks that take more than a few seconds",

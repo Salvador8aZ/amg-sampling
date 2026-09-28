@@ -12,12 +12,12 @@ from amg_sampling.core.cycles import (
     ring_fragments,
 )
 from amg_sampling.core.matching import InvalidMatchingError, RejoinMatching
-from tests.reference import (
+from amg_sampling.tests.reference import (
     all_perfect_matchings,
     amg_multigraph,
     reference_cycle_parts,
 )
-from tests.strategies import breaks, matching_and_permutation, matchings, states
+from amg_sampling.tests.strategies import breaks, matching_and_permutation, matchings, states
 
 # Paper letter labels for Θ(2,(2,2)) (figures 2 and 4): chromosome 0 is
 # a-b-c-d-e-f, chromosome 1 is g-h-i-j-k-l; telomeres a, f, g, l.

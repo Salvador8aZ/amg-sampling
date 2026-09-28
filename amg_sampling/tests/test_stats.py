@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from tests.stats import chi2_sf, chi_square_gof
+from amg_sampling.tests.stats import chi2_sf, chi_square_gof
 
 
 @pytest.mark.parametrize(

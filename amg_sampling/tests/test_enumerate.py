@@ -11,8 +11,8 @@ from amg_sampling.exact.enumerate import (
     iter_states,
     probabilities,
 )
-from tests.paper_tables import TABLE_1, TABLE_3
-from tests.reference import compositions, reference_states
+from amg_sampling.tests.paper_tables import TABLE_1, TABLE_3
+from amg_sampling.tests.reference import compositions, reference_states
 
 SPACES = list(StateSpace)
 
