@@ -229,6 +229,19 @@ def test_cli_patients(tmp_path):
     assert out.returncode == 2 and "docs/data.md" in out.stderr
 
 
+def test_large_counts_are_shown_in_scientific_notation():
+    from amg_sampling.cli import _count
+
+    assert _count(945) == "945"
+    assert _count(10**12 - 1) == "999,999,999,999"
+    assert _count(2_027_025 * 10**20) == "2.027e+26"
+    # (565)!! has 657 digits: far beyond a float, still formatted.
+    value = 1
+    for odd in range(1, 566, 2):
+        value *= odd
+    assert _count(value) == "1.959e+656"
+
+
 def test_cli_import_data(tmp_path):
     out = run_cli(
         "import-data",
