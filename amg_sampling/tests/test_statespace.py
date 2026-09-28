@@ -14,15 +14,15 @@ from amg_sampling.core.statespace import (
     is_deranged,
     is_proper,
 )
-from tests.reference import (
+from amg_sampling.tests.reference import (
     all_perfect_matchings,
     amg_multigraph,
     compositions,
     exchange_multigraph,
     reference_is_proper,
 )
-from tests.paper_tables import TABLE_1, TABLE_3
-from tests.strategies import states
+from amg_sampling.tests.paper_tables import TABLE_1, TABLE_3
+from amg_sampling.tests.strategies import states
 
 
 # -- deterministic -----------------------------------------------------------

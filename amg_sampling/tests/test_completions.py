@@ -16,8 +16,8 @@ from amg_sampling.exact.enumerate import count_states, iter_states
 from amg_sampling.exact.formulas import num_completions
 from amg_sampling.samplers.rejection import SamplingStats, iter_samples
 from amg_sampling.samplers.uniform import sample_completion
-from tests.reference import compositions
-from tests.stats import ALPHA, chi_square_gof
+from amg_sampling.tests.reference import compositions
+from amg_sampling.tests.stats import ALPHA, chi_square_gof
 
 
 # -- PartialMatching ------------------------------------------------------------

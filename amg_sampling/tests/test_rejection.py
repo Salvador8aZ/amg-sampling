@@ -22,8 +22,8 @@ from amg_sampling.samplers.rejection import (
     sample_state,
     theoretical_acceptance,
 )
-from tests.reference import compositions
-from tests.stats import ALPHA, chi_square_gof
+from amg_sampling.tests.reference import compositions
+from amg_sampling.tests.stats import ALPHA, chi_square_gof
 
 ALL, DERANGED, PROPER = StateSpace.ALL, StateSpace.DERANGED, StateSpace.PROPER
 

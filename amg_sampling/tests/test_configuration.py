@@ -2,7 +2,7 @@ import pytest
 from hypothesis import given
 
 from amg_sampling.core.configuration import TELOMERE, InitialConfiguration, Side, Telomere
-from tests.strategies import breaks
+from amg_sampling.tests.strategies import breaks
 
 
 # -- deterministic -----------------------------------------------------------

@@ -9,7 +9,7 @@ from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.exact.enumerate import iter_states
 from amg_sampling.samplers.uniform import matching_from_ordering, sample_matching
-from tests.stats import ALPHA, chi_square_gof
+from amg_sampling.tests.stats import ALPHA, chi_square_gof
 
 
 # -- the counting argument, checked exhaustively ------------------------------

@@ -94,7 +94,7 @@ Command 2 takes about 15 s and command 4 about 3 s on a laptop.
 ## Configuration
 
 Experiments are configured with [Hydra](https://hydra.cc). Four independent
-groups live in `src/amg_sampling/conf/`, and any key can be overridden on the
+groups live in `amg_sampling/conf/`, and any key can be overridden on the
 command line.
 
 | Group | Options | Main keys |
@@ -186,7 +186,7 @@ Results in the theory notes are labelled PROVED, VERIFIED(n ≤ N) or CONJECTURE
 ## Repository layout
 
 ```
-src/amg_sampling/
+amg_sampling/
   core/        Θ, rejoin matchings, cycle structures, state spaces (pure Python)
   exact/       enumeration, formulas, summary distributions
   samplers/    uniform matchings, completions, IID rejection sampling
@@ -194,7 +194,7 @@ src/amg_sampling/
   analysis/    null-model analyses, report, JSON/CSV output, figures
   conf/        Hydra configuration groups
   app.py       Hydra application;  cli.py  command-line entry point
-tests/         pytest suite (exact oracles, statistical tests, CLI smoke tests)
+  tests/       pytest suite (exact oracles, statistical tests, CLI smoke tests)
 benchmarks/    sampling throughput at n = 80
 docs/          demo, data and theory notes
 ```

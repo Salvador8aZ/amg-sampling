@@ -44,7 +44,7 @@ reference copy in `results.json`.
 
 ## Fields used
 
-See `src/amg_sampling/data/sheth/models.py`. From each row:
+See `amg_sampling/data/sheth/models.py`. From each row:
 
 | Column | Use |
 |---|---|
@@ -59,7 +59,7 @@ The CSV line number of every junction is kept and reported with each edge.
 
 ## From junctions to Θ and observed rejoins
 
-See `src/amg_sampling/data/sheth/conversion.py` for details.
+See `amg_sampling/data/sheth/conversion.py` for details.
 
 | Step | Status |
 |---|---|

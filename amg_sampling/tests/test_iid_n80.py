@@ -17,7 +17,7 @@ from amg_sampling.exact.summaries import (
     largest_cycle_distribution,
 )
 from amg_sampling.samplers.rejection import iter_samples
-from tests.stats import ALPHA, chi_square_gof
+from amg_sampling.tests.stats import ALPHA, chi_square_gof
 
 N_DSBS = 80
 SAMPLES = 8_000

@@ -17,9 +17,9 @@ from amg_sampling.data.sheth import (
     load_dataset,
 )
 from amg_sampling.exact.enumerate import count_states, exact_cycle_distribution
-from tests.paper_patient import P05_1657, TABLE_2
+from amg_sampling.tests.paper_patient import P05_1657, TABLE_2
 
-SYNTHETIC = Path(__file__).parent / "data" / "synthetic_sheth.csv"
+SYNTHETIC = Path(__file__).parent / "test_data" / "synthetic_sheth.csv"
 REAL = default_data_path()
 needs_real_data = pytest.mark.skipif(
     not REAL.is_file(), reason=f"Sheth dataset not available at {REAL} (see docs/data.md)"

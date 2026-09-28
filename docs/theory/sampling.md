@@ -76,7 +76,7 @@ IID. Each has the law computed in §2. ∎
 
 With uniform proposals the law is uniform on `X`. There is no Markov chain:
 no burn-in, no autocorrelation, no mixing time. The independence test in
-`tests/test_rejection.py` (non-overlapping consecutive pairs are uniform on
+`amg_sampling/tests/test_rejection.py` (non-overlapping consecutive pairs are uniform on
 `X × X`) is only a sanity check; the argument above is what establishes independence.
 
 In practice "independent" means independent up to the quality of the
@@ -143,7 +143,7 @@ the acceptance test changes:
 
 Statistical checks use Pearson's χ² goodness-of-fit, with categories of
 expected count < 5 pooled. The upper tail is computed from the regularised
-incomplete gamma function in `tests/stats.py`, which is itself tested against
+incomplete gamma function in `amg_sampling/tests/stats.py`, which is itself tested against
 known quantiles and a negative control. Each check uses a fixed seed and
 significance level `α = 10⁻³`. The tests are deterministic, and for a random
 seed each would fail with probability about `α` if the sampler were correct.
@@ -164,7 +164,7 @@ any MCMC sampler must reproduce.
 
 ## 8. Results at n = 80
 
-**Validation** (`tests/test_iid_n80.py`, 8 000 samples each, α = 10⁻³):
+**Validation** (`amg_sampling/tests/test_iid_n80.py`, 8 000 samples each, α = 10⁻³):
 - **Θ(1,(80)), PROPER (= DERANGED):** χ² tests of the number of cycles, the
   largest cycle and the number of `C₂` against the exact distributions of §6
   all pass.

@@ -8,7 +8,7 @@ from amg_sampling.core.matching import (
     require_compatible,
     validate_partner_map,
 )
-from tests.strategies import matching_and_permutation, states
+from amg_sampling.tests.strategies import matching_and_permutation, states
 
 
 # -- deterministic -----------------------------------------------------------
