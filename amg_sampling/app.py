@@ -93,6 +93,8 @@ def execute(cfg: DictConfig, output_dir: Path) -> tuple[dict, list[Path]]:
         name=cfg.sampler.name,
         num_samples=int(cfg.sampler.get("num_samples", 0) or 0),
         max_proposals_per_sample=cfg.sampler.get("max_proposals_per_sample"),
+        burn_in=int(cfg.sampler.get("burn_in", 0) or 0),
+        thin=int(cfg.sampler.get("thin", 1) or 1),
     )
     if sampler.samples and sampler.num_samples <= 0:
         raise ValueError("sampler.num_samples must be positive.")

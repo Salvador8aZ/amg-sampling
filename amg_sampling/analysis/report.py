@@ -74,8 +74,27 @@ def _problem_block(problem, add):
 
 def _sampling_block(results, sampling, add):
     sampler = results["sampler"]
-    if sampler["name"] != "iid" or sampling is None:
+    if sampler["name"] not in ("iid", "mcmc") or sampling is None:
         add(f"Sampling method:  exact only (no sampling); seed {sampler['seed']}")
+        return
+    if sampler["name"] == "mcmc":
+        add(
+            "Sampling method:  MCMC, Metropolis–Hastings with 2-switch (reversal) moves"
+        )
+        add(f"Samples:          {sampling['samples']:,}")
+        add(
+            f"Burn-in, thin:    {sampler['burn_in']:,} steps, "
+            f"then every {sampler['thin']:,} steps"
+        )
+        add(f"Moves proposed:   {sampling['proposals']:,}")
+        add(f"Move acceptance:  {fp(sampling['acceptance_rate'])}")
+        add(
+            f"Effective size:   {sampling['effective_samples_num_cycles']:,.0f} "
+            "(number of cycles; autocorrelation time "
+            f"{sampling['integrated_autocorrelation_time']:.3g})"
+        )
+        add(f"Seed:             {sampler['seed']}")
+        add("                  standard errors use batch means (correlated samples)")
         return
     theory = sampling.get("theoretical_acceptance")
     theory_text = f" (exact {fp(theory['value'])})" if theory else ""

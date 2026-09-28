@@ -83,3 +83,92 @@ disconnected AMG.
   That is 90 650 (layout, `F`, space) cases for `n ≤ 5`
   (`test_completion_spaces_are_connected_under_switches` for `n ≤ 4`, plus
   `…_n5`, marked slow).
+
+## 3. The Markov chain (`samplers/mcmc.py`)
+
+**Algorithm.** Start from a state `r₀ ∈ S`. By default this is one exact
+uniform draw of the rejection sampler (see [`sampling.md`](sampling.md) §2 and §9).
+At each step:
+
+1. Draw `u` uniformly from the `f` movable ends, then `v` uniformly from the
+   `f − 2` movable ends other than `u` and `r(u)`.
+2. Propose `s = switch(r, u, v)`.
+3. Move to `s` if `s ∈ S`; otherwise stay at `r`.
+
+After `burn_in` steps, record the state after every `thin` steps.
+
+**Proposition 6 (PROVED).** `Uniform(S)` is stationary. If the switch graph
+restricted to `S` is connected (Claim 5), the chain is irreducible and
+aperiodic, so its distribution converges to `Uniform(S)` from any start, and
+averages along the chain converge to expectations under `Uniform(S)`.
+
+*Proof.*
+- **Stationarity.** For `r ≠ s` in `S`, `P(r → s) = q(r → s) = 1/(m(m−1))` if
+  `s` is a neighbour of `r`, and 0 otherwise. This is symmetric in `r` and `s`
+  (Corollary 3), so the uniform distribution satisfies detailed balance. This
+  is Metropolis–Hastings with a symmetric proposal and target `π ∝ 1_S`, whose
+  acceptance probability `min(1, π(s)/π(r))` is 1 inside `S` and 0 outside it.
+- **Irreducibility.** This is exactly connectivity of the restricted switch
+  graph.
+- **Aperiodicity.** If some state of `S` has a neighbour outside `S`, that
+  state has a self-loop. Otherwise `S` is closed under switches, and since
+  the switch graph on the movable ends is connected (Proposition 4), `S` is
+  the whole of `ALL` or of the completions of `F`. There, the two
+  reconnections of one pair of edges and the original state form a triangle,
+  an odd cycle (for `m ≥ 2`). Either way the chain is aperiodic. ∎
+
+For a uniform target the chain adds nothing that IID rejection does not
+already provide (§7 of [`sampling.md`](sampling.md)). It is the foundation for
+non-uniform targets: a biologically weighted target `π(r) ∝ w(r)` on `S` needs
+only the acceptance probability `min(1, w(s)/w(r))` in step 3. Rejection from
+uniform proposals would no longer give that distribution.
+
+**Implementation notes.**
+- For `DERANGED` only the two new edges can create a `C₁`, so membership is
+  checked in `O(1)`. For `PROPER`, connectivity is recomputed by union-find in
+  `O(n α(k))` per step.
+- A rejected proposal is undone by a second switch, `switch(s, u, r(u))`.
+- With at most one movable edge, the state space has a single state and the
+  chain never moves.
+
+**Verification.**
+
+| Level | Check | Test |
+|---|---|---|
+| 0: kernel | Rows and columns of the exact transition matrix sum to 1, and it is symmetric, for every layout with `n ≤ 4` and every space, and with fixed rejoins | `test_kernel_is_symmetric_and_preserves_uniform`, `test_kernel_with_fixed_rejoins` |
+| 1: steps | The fast chain's one-step distribution matches the exact kernel (χ²) | `test_one_step_distribution_matches_the_kernel` |
+| 2: distributions | Chain frequencies of cycle structures match exact distributions within 4 batch-means standard errors, for `PROPER`, `DERANGED` and `ALL` | `test_chain_reproduces_exact_cycle_distributions` |
+| 2: convergence | From the atypical start `C₆`, the chain forgets it after burn-in | `test_chain_converges_from_an_atypical_start` |
+| 2: large `n` | `Θ(1,(40))` `DERANGED`: number of cycles against the exact distribution | `test_chain_at_n40_matches_the_exact_number_of_cycles` |
+| 2: patient | P05-1657, chromosomes 8 and 12: the chain on the 945 completions reproduces the paper's table 2 | `test_mcmc_reproduces_the_p05_1657_completions` (needs the dataset) |
+
+## 4. Standard errors for correlated samples
+
+Consecutive chain states are correlated, so `N` samples carry the information
+of fewer, `N_eff`, independent ones. For each reported probability the
+analyses estimate `N_eff` by non-overlapping batch means
+(`analysis.estimates.batch_means_ess`):
+
+- **Batches.** Cut the `N` samples into `B = ⌊N/L⌋` batches of
+  `L = ⌊√N⌋` consecutive samples.
+- **Variance.** `σ̂²_BM = L · Var(batch means)` estimates the asymptotic
+  variance of the chain average.
+- **Effective size.** `N_eff = N p̂(1−p̂) / σ̂²_BM`, capped at `N`.
+
+`N_eff` then replaces `N` in the standard error, the Wilson interval and the
+zero-hit upper bound (`analysis.estimates`). When an indicator's own `N_eff`
+cannot be estimated (no hits, every sample a hit, or constant batches), the
+`N_eff` of the number of cycles is used instead. The report prints that
+`N_eff` and the integrated autocorrelation time `τ = N / N_eff` as a mixing
+diagnostic.
+
+VERIFIED: on IID Bernoulli samples `N_eff ≈ N`, and on a two-state chain with
+flip probability `q` it matches the known `N q/(1−q)` within 25%
+(`test_batch_means_ess_*`).
+
+**Limitations.**
+- Batch means with `L = √N` is consistent but can underestimate the variance
+  for chains that mix slowly relative to `L`.
+- A single chain cannot detect a region of `S` it never visits. Several chains
+  from dispersed starts (R̂) are future work, and matter most once targets are
+  non-uniform.

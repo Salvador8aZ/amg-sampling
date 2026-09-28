@@ -101,6 +101,10 @@ poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chro
 
 # 5. The same, exact results only (no sampling)
 poetry run amg-sampling problem=patient analysis=observed sampler=exact
+
+# 6. The same with the Markov chain (2-switch moves) instead of IID sampling
+poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
+    statespace=proper sampler=mcmc analysis=observed seed=42
 ```
 
 Command 2 takes about 15 s and command 4 about 3 s on a laptop.
@@ -116,9 +120,18 @@ command line.
 |---|---|---|
 | `problem` | `configuration` (default), `patient` | `problem.breaks=[…]`; `problem.patient_id`, `problem.chromosomes=[…]` |
 | `statespace` | `proper` (default), `deranged`, `all` | — |
-| `sampler` | `iid` (default), `exact` | `sampler.num_samples` |
+| `sampler` | `iid` (default), `mcmc`, `exact` | `sampler.num_samples`; `sampler.burn_in`, `sampler.thin` (mcmc) |
 | `analysis` | `distribution` (default), `observed`, `rejoin_probability` | `analysis.confidence` |
 | top level | — | `seed`, `data.sheth_csv`, `output.plots`, `output.top` |
+
+- **`iid`**: exactly uniform, independent samples by rejection.
+- **`mcmc`**: a Markov chain whose moves are 2-switches (re-pairing the ends
+  of two junctions, the combinatorial analogue of an inversion). With observed
+  rejoins only the unmatched ends move. For uniform targets it reproduces
+  `iid` and exists as the basis for biologically weighted targets. Its
+  standard errors use batch means and an effective sample size, printed in the
+  report ([docs/theory/mcmc.md](docs/theory/mcmc.md)).
+- **`exact`**: exact results only; fails when none is feasible.
 
 - **`distribution`**: cycle-structure, number-of-cycles and largest-cycle
   distributions under the null, with exact references where available.
@@ -162,14 +175,22 @@ rearrangement is in a cell.
   for any n).
 - IID uniform sampling (rejection), validated at the state, distribution and
   acceptance-rate levels, including at n = 80.
+- The 2-switch (reversal-type) move, with its neighbour count and proposal
+  symmetry proved, and connectivity of DERANGED and PROPER verified
+  exhaustively for n ≤ 6.
+- MCMC with 2-switch moves (`sampler=mcmc`), validated against the exact
+  kernel and exact distributions, including the paper's P05-1657 table 2.
+- Junction homology and foreign-sequence lengths read from the dataset and
+  reported with each observed rejoin.
 - Hydra experiments with saved JSON/CSV results and optional figures.
 - Patient prototype: Sheth dataset import, conversion with provenance,
   reproduction of the paper's case study, and patient-vs-null comparison.
 
 **Planned (not implemented)**
-- Reversal / 2-switch move analysis (the paper's reversal networks)
-- A weighted biological rejoining model
-- MCMC
+- The paper's reversal networks (the graph of AMGs linked by reversals)
+- A weighted biological rejoining model: the MCMC target, for example
+  from genomic distance and junction sequence features
+- Several chains per run with convergence diagnostics (R̂)
 - ABC-SMC
 - MLflow experiment tracking
 - Quantum-circuit (PennyLane) experiments
@@ -195,6 +216,8 @@ rearrangement is in a cell.
   theorems, and documented differences from the paper.
 - [docs/theory/sampling.md](docs/theory/sampling.md): uniform sampling,
   rejection, IID proofs, and fixed-rejoin completion.
+- [docs/theory/mcmc.md](docs/theory/mcmc.md): the 2-switch move, the Markov
+  chain, and standard errors for correlated samples.
 
 Results in the theory notes are labelled PROVED, VERIFIED(n ≤ N) or CONJECTURE.
 

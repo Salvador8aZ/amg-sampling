@@ -8,6 +8,7 @@ import pytest
 from hydra import compose, initialize_config_module
 
 from amg_sampling import directories
+from amg_sampling.analysis.report import format_report
 from amg_sampling.app import build_problem, execute
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.data.sheth import default_data_path
@@ -40,6 +41,7 @@ def test_defaults():
         ("statespace", "all", "name", "all"),
         ("statespace", "deranged", "name", "deranged"),
         ("sampler", "exact", "name", "exact"),
+        ("sampler", "mcmc", "thin", 10),
         ("analysis", "observed", "name", "observed"),
         ("analysis", "rejoin_probability", "confidence", 0.95),
         ("problem", "patient", "patient_id", "P05-1657"),
@@ -105,6 +107,34 @@ def test_execute_writes_files_and_is_deterministic(tmp_path):
     assert "breaks:\n  - 3\n  - 2" in (tmp_path / "a" / "config.yaml").read_text(
         encoding="utf-8"
     )
+
+
+def test_execute_with_mcmc(tmp_path):
+    cfg = config(
+        "problem.breaks=[3,2]",
+        "sampler=mcmc",
+        "sampler.num_samples=400",
+        "sampler.burn_in=50",
+        "sampler.thin=2",
+        "output.plots=false",
+    )
+    results, _ = execute(cfg, tmp_path / "a")
+    assert results == execute(cfg, tmp_path / "b")[0]
+    assert results["sampler"] == {
+        "name": "mcmc",
+        "num_samples": 400,
+        "burn_in": 50,
+        "thin": 2,
+        "seed": 42,
+    }
+    sampling = results["sampling"]
+    assert sampling["method"] == "mcmc" and sampling["proposals"] == 50 + 400 * 2
+    assert sampling["theoretical_acceptance"] is None
+    assert 0 < sampling["effective_samples_num_cycles"] <= 400
+    assert all("effective_samples" in r for r in results["cycle_distribution"])
+    text = format_report(results)
+    assert "MCMC, Metropolis–Hastings with 2-switch (reversal) moves" in text
+    assert "Burn-in, thin:    50 steps, then every 2 steps" in text
 
 
 def test_execute_rejects_bad_seed(tmp_path):
