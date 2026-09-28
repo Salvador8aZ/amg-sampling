@@ -11,7 +11,8 @@ def test_core_imports_no_third_party_packages():
 
     code = (
         "import sys, amg_sampling.core; "
-        "bad = {'networkx', 'numpy', 'hydra', 'mlflow', 'pennylane'} & set(sys.modules); "
+        "bad = {'networkx', 'numpy', 'hydra', 'mlflow', 'pennylane'} "
+        "& set(sys.modules); "
         "assert not bad, bad"
     )
     subprocess.run([sys.executable, "-c", code], check=True)

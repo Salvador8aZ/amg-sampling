@@ -24,7 +24,10 @@ from amg_sampling.exact.formulas import (
     num_proper_states,
     num_single_cycle_states,
 )
-from amg_sampling.exact.summaries import cycle_count_distribution, largest_cycle_distribution
+from amg_sampling.exact.summaries import (
+    cycle_count_distribution,
+    largest_cycle_distribution,
+)
 
 # Feasibility limits (see docs/theory/exact.md §5 and README "Limitations").
 MAX_N_FOR_PARTITIONS = 40  # theorem 2 sums over p(n) partitions; p(40) = 37 338
@@ -42,7 +45,8 @@ class ExactReference:
     cycle_distribution: dict[CycleStructure, int] | None = None
     cycle_counts: dict[int, int] | None = None
     largest_cycle: dict[int, int] | None = None
-    # When summaries are only available for DERANGED, they bound PROPER within `tv_bound`.
+    # When summaries are only available for DERANGED, they bound PROPER within
+    # `tv_bound`.
     summaries_space: str | None = None
     tv_bound: Fraction | None = None
     unavailable: dict[str, str] = field(default_factory=dict)
@@ -69,16 +73,24 @@ def exact_reference(theta: InitialConfiguration, space: StateSpace) -> ExactRefe
     elif k <= MAX_K_FOR_PROPER_COUNT:
         ref.total_states = num_proper_states(theta)
     else:
-        ref.unavailable["total_states"] = f"O(3^k) recursion with k = {k} > {MAX_K_FOR_PROPER_COUNT}"
+        ref.unavailable["total_states"] = (
+            f"O(3^k) recursion with k = {k} > {MAX_K_FOR_PROPER_COUNT}"
+        )
 
     # Full cycle-structure distribution.
     layout_free = space is not StateSpace.PROPER or k == 1
     if layout_free:
         if n <= MAX_N_FOR_PARTITIONS:
             deranged = space is not StateSpace.ALL
-            ref.cycle_distribution = cycle_distribution_deranged(n) if deranged else cycle_distribution_all(n)
+            ref.cycle_distribution = (
+                cycle_distribution_deranged(n)
+                if deranged
+                else cycle_distribution_all(n)
+            )
         else:
-            ref.unavailable["cycle_distribution"] = f"theorem 2 needs all partitions of n = {n} > {MAX_N_FOR_PARTITIONS}"
+            ref.unavailable["cycle_distribution"] = (
+                f"theorem 2 needs all partitions of n = {n} > {MAX_N_FOR_PARTITIONS}"
+            )
     elif all_ones and n >= 2:
         ref.cycle_distribution = {CycleStructure([n]): num_single_cycle_states(n)}
     elif k <= MAX_K_FOR_PROPER_DISTRIBUTION and n <= MAX_N_FOR_PROPER_DISTRIBUTION:
@@ -97,7 +109,9 @@ def exact_reference(theta: InitialConfiguration, space: StateSpace) -> ExactRefe
         ref.largest_cycle = _aggregate(ref.cycle_distribution, lambda c: c.parts[0])
         ref.summaries_space = space.value
     elif layout_free:
-        summary_space = StateSpace.ALL if space is StateSpace.ALL else StateSpace.DERANGED
+        summary_space = (
+            StateSpace.ALL if space is StateSpace.ALL else StateSpace.DERANGED
+        )
         ref.cycle_counts = cycle_count_distribution(n, summary_space)
         ref.largest_cycle = largest_cycle_distribution(n, summary_space)
         ref.summaries_space = space.value
@@ -128,9 +142,14 @@ def completion_reference(
     total = num_completions(len(fixed.free_ends))
     if total > MAX_COMPLETIONS_TO_ENUMERATE:
         return CompletionReference(
-            total, None, f"{total:,} completions exceed the enumeration limit {MAX_COMPLETIONS_TO_ENUMERATE:,}"
+            total,
+            None,
+            f"{total:,} completions exceed the enumeration limit "
+            f"{MAX_COMPLETIONS_TO_ENUMERATE:,}",
         )
-    return CompletionReference(total, exact_cycle_distribution(theta, space, fixed), None)
+    return CompletionReference(
+        total, exact_cycle_distribution(theta, space, fixed), None
+    )
 
 
 def _aggregate(dist: dict[CycleStructure, int], key) -> dict[int, int]:

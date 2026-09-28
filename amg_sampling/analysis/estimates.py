@@ -29,7 +29,10 @@ class ProportionEstimate:
 
     def __post_init__(self):
         if self.trials <= 0 or not 0 <= self.hits <= self.trials:
-            raise ValueError(f"Need 0 <= hits <= trials and trials > 0, got {self.hits}/{self.trials}.")
+            raise ValueError(
+                f"Need 0 <= hits <= trials and trials > 0, "
+                f"got {self.hits}/{self.trials}."
+            )
         if not 0 < self.confidence < 1:
             raise ValueError("confidence must be in (0, 1).")
 
@@ -61,15 +64,21 @@ class ProportionEstimate:
         if self.hits == 0:
             return (
                 f"0 occurrences in {self.trials:,} samples "
-                f"({self.confidence:.0%} upper bound {format_probability(self.zero_hit_upper_bound)})"
+                f"({self.confidence:.0%} upper bound "
+                f"{format_probability(self.zero_hit_upper_bound)})"
             )
         if self.hits < FEW_HITS:
             low, high = self.wilson_interval
             return (
-                f"{self.hits} occurrence{'s' if self.hits > 1 else ''} in {self.trials:,} samples "
-                f"({self.confidence:.0%} interval {format_probability(low)}–{format_probability(high)})"
+                f"{self.hits} occurrence{'s' if self.hits > 1 else ''} "
+                f"in {self.trials:,} samples "
+                f"({self.confidence:.0%} interval "
+                f"{format_probability(low)}–{format_probability(high)})"
             )
-        return f"{format_probability(self.estimate)} ± {format_probability(self.standard_error)}"
+        return (
+            f"{format_probability(self.estimate)} ± "
+            f"{format_probability(self.standard_error)}"
+        )
 
     def to_dict(self) -> dict:
         low, high = self.wilson_interval

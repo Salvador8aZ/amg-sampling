@@ -23,9 +23,9 @@ between two free ends ``(2j+1, 2j+2)`` are the internal chromatin edges, called
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Sequence
 
 TELOMERE = -1
 """Sentinel returned by :meth:`InitialConfiguration.chromatin_partner` when the
@@ -73,7 +73,9 @@ class InitialConfiguration:
             if isinstance(b, bool) or not isinstance(b, int):
                 raise TypeError(f"DSB counts must be integers, got {b!r}.")
             if b < 1:
-                raise ValueError(f"Every chromosome must carry at least one DSB, got {b}.")
+                raise ValueError(
+                    f"Every chromosome must carry at least one DSB, got {b}."
+                )
 
         dsb_chromosome = tuple(i for i, b in enumerate(breaks) for _ in range(b))
         n = len(dsb_chromosome)

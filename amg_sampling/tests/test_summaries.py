@@ -56,12 +56,16 @@ def test_against_enumeration(n, space):
     dist = exact_cycle_distribution(InitialConfiguration([n]), space)
     assert cycle_count_distribution(n, space) == aggregate(dist, lambda c: c.num_cycles)
     assert largest_cycle_distribution(n, space) == aggregate(dist, lambda c: c.parts[0])
-    assert cycle_length_multiplicity_distribution(n, 2, space) == aggregate(dist, lambda c: c.count(2))
+    assert cycle_length_multiplicity_distribution(n, 2, space) == aggregate(
+        dist, lambda c: c.count(2)
+    )
 
 
 @pytest.mark.parametrize("n", [1, 10, 40, 80])
 def test_cycle_count_all_agrees_with_stirling_formula(n):
-    assert cycle_count_distribution(n, ALL) == {c: cycle_count_all(n, c) for c in range(1, n + 1)}
+    assert cycle_count_distribution(n, ALL) == {
+        c: cycle_count_all(n, c) for c in range(1, n + 1)
+    }
 
 
 @pytest.mark.parametrize("n", [2, 25, 80])
@@ -69,7 +73,9 @@ def test_totals(n):
     for space, total in [(ALL, num_all_states(n)), (DERANGED, num_deranged_states(n))]:
         assert sum(cycle_count_distribution(n, space).values()) == total
         assert sum(largest_cycle_distribution(n, space).values()) == total
-        assert sum(cycle_length_multiplicity_distribution(n, 2, space).values()) == total
+        assert (
+            sum(cycle_length_multiplicity_distribution(n, 2, space).values()) == total
+        )
 
 
 def test_proper_is_rejected():

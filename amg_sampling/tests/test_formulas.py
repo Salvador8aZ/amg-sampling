@@ -39,7 +39,9 @@ def by_string(dist):
 
 def small_compositions(max_n):
     """Every DSB distribution with 1 <= n <= max_n, as pytest params."""
-    return [pytest.param(b, id=str(b)) for n in range(1, max_n + 1) for b in compositions(n)]
+    return [
+        pytest.param(b, id=str(b)) for n in range(1, max_n + 1) for b in compositions(n)
+    ]
 
 
 # -- partitions ----------------------------------------------------------------
@@ -79,7 +81,9 @@ def test_theorem_2_sums_to_theorem_1(n):
 
 @pytest.mark.parametrize("n", range(1, 21))
 def test_corollary_3_is_theorem_2_for_single_cycle(n):
-    assert num_single_cycle_states(n) == num_states_with_cycle_structure(CycleStructure([n]))
+    assert num_single_cycle_states(n) == num_states_with_cycle_structure(
+        CycleStructure([n])
+    )
 
 
 def test_theorem_2_examples():
@@ -93,7 +97,9 @@ def test_theorem_2_examples():
 
 
 def paper_section_3_1_printed_count(n, c):
-    """The expression printed in section 3.1 of the paper, kept only for regression tests."""
+    """The expression printed in section 3.1 of the paper, kept only for
+    regression tests.
+    """
     return unsigned_stirling_first_kind(n, c)
 
 
@@ -142,7 +148,9 @@ def test_three_level_consistency(n):
 
 
 def mean_cycles_ewens_half(n):
-    """Derived (not used by the library): E[#cycles | uniform ALL] = Σ_{i<n} 1/(2i+1)."""
+    """Derived (not used by the library): E[#cycles | uniform ALL] =
+    Σ_{i<n} 1/(2i+1).
+    """
     return sum(Fraction(1, 2 * i + 1) for i in range(n))
 
 
@@ -161,7 +169,14 @@ def test_mean_number_of_cycles_against_cycle_counts(n):
 
 
 def test_stirling_values():
-    assert [unsigned_stirling_first_kind(5, k) for k in range(6)] == [0, 24, 50, 35, 10, 1]
+    assert [unsigned_stirling_first_kind(5, k) for k in range(6)] == [
+        0,
+        24,
+        50,
+        35,
+        10,
+        1,
+    ]
     assert sum(unsigned_stirling_first_kind(7, k) for k in range(8)) == factorial(7)
 
 
@@ -179,7 +194,17 @@ def test_equation_3_sum_equals_theorem_5(n):
 
 
 def test_deranged_counts_oeis_a053871():
-    assert [num_deranged_states(n) for n in range(9)] == [1, 0, 2, 8, 60, 544, 6040, 79008, 1190672]
+    assert [num_deranged_states(n) for n in range(9)] == [
+        1,
+        0,
+        2,
+        8,
+        60,
+        544,
+        6040,
+        79008,
+        1190672,
+    ]
 
 
 @pytest.mark.parametrize("b", small_compositions(6))
@@ -187,7 +212,9 @@ def test_deranged_against_enumeration_for_every_layout(b):
     theta = InitialConfiguration(b)
     n = theta.num_dsbs
     assert count_states(theta, StateSpace.DERANGED) == num_deranged_states(n)
-    assert exact_cycle_distribution(theta, StateSpace.DERANGED) == cycle_distribution_deranged(n)
+    assert exact_cycle_distribution(
+        theta, StateSpace.DERANGED
+    ) == cycle_distribution_deranged(n)
 
 
 @pytest.mark.parametrize("n", range(0, 22))
@@ -243,7 +270,9 @@ def test_lemma_10_two_chromosomes(n):
     # ⌊n/2⌋ <= l <= n−2; the derivation holds for every 1 <= l <= n−1.
     k = num_deranged_states
     for l in range(1, n):
-        assert num_proper_states(InitialConfiguration((l, n - l))) == k(n) - k(l) * k(n - l)
+        assert num_proper_states(InitialConfiguration((l, n - l))) == k(n) - k(l) * k(
+            n - l
+        )
 
 
 @pytest.mark.parametrize("n", range(3, 13))
@@ -254,7 +283,9 @@ def test_lemma_12_three_chromosomes(n):
         for l2 in range(1, n - l1):
             l3 = n - l1 - l2
             ls = (l1, l2, l3)
-            formula = k(n) - sum(k(li) * k(n - li) for li in ls) + 2 * k(l1) * k(l2) * k(l3)
+            formula = (
+                k(n) - sum(k(li) * k(n - li) for li in ls) + 2 * k(l1) * k(l2) * k(l3)
+            )
             assert num_proper_states(InitialConfiguration(ls)) == formula
 
 
@@ -278,10 +309,13 @@ def lemma_15_theta(num_dsbs):
 def test_lemma_15_against_proper_distribution(num_dsbs):
     dist = cycle_distribution_proper(lemma_15_theta(num_dsbs))
     two = {c: m for c, m in dist.items() if c.num_cycles == 2}
-    assert dist[CycleStructure([num_dsbs])] == num_single_cycle_states(num_dsbs)  # lemma 15 (i)
+    assert dist[CycleStructure([num_dsbs])] == num_single_cycle_states(
+        num_dsbs
+    )  # lemma 15 (i)
     assert sum(two.values()) == lemma15_two_cycle_count(num_dsbs)
     assert all(c.num_cycles <= 2 for c in dist)
-    # Structures C_j + C_{N-j}, 2 <= j <= N-2, each ordered choice contributing 2^{N-2}(N-2)!.
+    # Structures C_j + C_{N-j}, 2 <= j <= N-2, each ordered choice contributing
+    # 2^{N-2}(N-2)!.
     unit = 2 ** (num_dsbs - 2) * factorial(num_dsbs - 2)
     for j in range(2, num_dsbs - 1):
         c = CycleStructure([j, num_dsbs - j])
@@ -309,9 +343,12 @@ def test_lemma_15_domain(bad):
 
 @pytest.mark.parametrize("b", small_compositions(6))
 def test_proposition_4_cycle_counts_are_realised(b):
-    # Proposition 4: for every c in [1, min(max b_j, ⌊n/2⌋)] some proper AMG has c cycles.
+    # Proposition 4: for every c in [1, min(max b_j, ⌊n/2⌋)] some proper AMG has
+    # c cycles.
     n = sum(b)
-    realised = {c.num_cycles for c in cycle_distribution_proper(InitialConfiguration(b))}
+    realised = {
+        c.num_cycles for c in cycle_distribution_proper(InitialConfiguration(b))
+    }
     for c in range(1, min(max(b), n // 2) + 1):
         assert c in realised
 

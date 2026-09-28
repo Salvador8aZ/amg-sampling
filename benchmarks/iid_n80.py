@@ -1,6 +1,6 @@
 """Throughput of IID rejection sampling at n = 80 for several chromosome layouts.
 
-Run with ``uv run python benchmarks/iid_n80.py``. Timings are wall-clock and
+Run with ``poetry run python benchmarks/iid_n80.py``. Timings are wall-clock and
 depend on the machine; the sample sizes are chosen for stable timings, not
 for statistical validation (see amg_sampling/tests/test_iid_n80.py for that).
 """
@@ -15,7 +15,11 @@ import time
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import cycle_structure
 from amg_sampling.core.statespace import StateSpace
-from amg_sampling.samplers.rejection import SamplingStats, iter_samples, theoretical_acceptance
+from amg_sampling.samplers.rejection import (
+    SamplingStats,
+    iter_samples,
+    theoretical_acceptance,
+)
 from amg_sampling.samplers.uniform import sample_matching
 
 N = 80
@@ -50,8 +54,13 @@ def mean_seconds_over(func, states) -> float:
 def main() -> None:
     print(f"Python {platform.python_version()} ({platform.machine()}), n = {N}\n")
     rng = random.Random(2026)
-    proposal_s = per_call_seconds(lambda: sample_matching(N, rng), PROPOSAL_TIMING_DRAWS)
-    print(f"sample_matching: {proposal_s * 1e6:.1f} µs/proposal ({1 / proposal_s:,.0f} proposals/s)\n")
+    proposal_s = per_call_seconds(
+        lambda: sample_matching(N, rng), PROPOSAL_TIMING_DRAWS
+    )
+    print(
+        f"sample_matching: {proposal_s * 1e6:.1f} µs/proposal "
+        f"({1 / proposal_s:,.0f} proposals/s)\n"
+    )
 
     header = (
         "| layout | space | theoretical acceptance | empirical acceptance (± 1 s.e.) "
@@ -76,7 +85,9 @@ def main() -> None:
                 theory = "n/a (O(3^k) recursion, k > 12)"
             stats = SamplingStats()
             start = time.perf_counter()
-            for _ in iter_samples(theta, space, random.Random(100 + index), ACCEPTED_SAMPLES, stats=stats):
+            for _ in iter_samples(
+                theta, space, random.Random(100 + index), ACCEPTED_SAMPLES, stats=stats
+            ):
                 pass
             elapsed = time.perf_counter() - start
             p = stats.acceptance_rate

@@ -64,30 +64,47 @@ def test_synthetic_configuration_parsing():
 
 
 def test_patient_problem_from_synthetic_data():
-    cfg = config("problem=patient", "problem.patient_id=SYN-1", "problem.chromosomes=[1,2]",
-                 f"data.sheth_csv={SYNTHETIC}")
+    cfg = config(
+        "problem=patient",
+        "problem.patient_id=SYN-1",
+        "problem.chromosomes=[1,2]",
+        f"data.sheth_csv={SYNTHETIC}",
+    )
     problem = build_problem(cfg)
     assert problem.kind == "patient" and problem.theta.breaks == (3, 1)
-    cfg = config("problem=patient", "problem.patient_id=SYN-1", "problem.chromosomes=null",
-                 f"data.sheth_csv={SYNTHETIC}")
+    cfg = config(
+        "problem=patient",
+        "problem.patient_id=SYN-1",
+        "problem.chromosomes=null",
+        f"data.sheth_csv={SYNTHETIC}",
+    )
     assert build_problem(cfg).patient.chromosomes == (1, 2)  # only one component
 
 
-# -- execute (no Hydra runtime needed) -------------------------------------------------------
+# -- execute (no Hydra runtime needed) ---------------------------------------------
 
 
 def test_execute_writes_files_and_is_deterministic(tmp_path):
-    cfg = config("problem.breaks=[3,2]", "sampler.num_samples=500", "output.plots=false")
+    cfg = config(
+        "problem.breaks=[3,2]", "sampler.num_samples=500", "output.plots=false"
+    )
     results_a, files = execute(cfg, tmp_path / "a")
     results_b, _ = execute(cfg, tmp_path / "b")
     assert results_a == results_b
     names = {p.name for p in files}
-    assert {"config.yaml", "results.json", "cycle_distribution.csv", "cycle_count_distribution.csv",
-            "largest_cycle_distribution.csv"} <= names
-    assert json.loads((tmp_path / "a" / "results.json").read_text(encoding="utf-8")) == json.loads(
-        (tmp_path / "b" / "results.json").read_text(encoding="utf-8")
+    assert {
+        "config.yaml",
+        "results.json",
+        "cycle_distribution.csv",
+        "cycle_count_distribution.csv",
+        "largest_cycle_distribution.csv",
+    } <= names
+    assert json.loads(
+        (tmp_path / "a" / "results.json").read_text(encoding="utf-8")
+    ) == json.loads((tmp_path / "b" / "results.json").read_text(encoding="utf-8"))
+    assert "breaks:\n  - 3\n  - 2" in (tmp_path / "a" / "config.yaml").read_text(
+        encoding="utf-8"
     )
-    assert "breaks:\n  - 3\n  - 2" in (tmp_path / "a" / "config.yaml").read_text(encoding="utf-8")
 
 
 def test_execute_rejects_bad_seed(tmp_path):
@@ -95,29 +112,45 @@ def test_execute_rejects_bad_seed(tmp_path):
         execute(config("seed=abc", "sampler.num_samples=10"), tmp_path)
 
 
-@pytest.mark.skipif(not REAL.is_file(), reason="Sheth dataset not available (see docs/data.md)")
+@pytest.mark.skipif(
+    not REAL.is_file(), reason="Sheth dataset not available (see docs/data.md)"
+)
 def test_demonstration_patient_exact(tmp_path):
-    cfg = config("problem=patient", "analysis=observed", "sampler=exact", "output.plots=false",
-                 f"data.sheth_csv={REAL.resolve()}")
+    cfg = config(
+        "problem=patient",
+        "analysis=observed",
+        "sampler=exact",
+        "output.plots=false",
+        f"data.sheth_csv={REAL.resolve()}",
+    )
     results, _ = execute(cfg, tmp_path)
     assert results["observed"]["completions"]["exact_count"] == 945
     joint = results["joint_observed_rejoins"]
     assert (joint["exact_numerator"], joint["exact_denominator"]) == (945, 387_099_936)
 
 
-# -- command line ---------------------------------------------------------------------------
+# -- command line ------------------------------------------------------------------
 
 
 def run_cli(*args, cwd):
     return subprocess.run(
-        [sys.executable, "-m", "amg_sampling", *args], cwd=cwd, capture_output=True, text=True, timeout=300
+        [sys.executable, "-m", "amg_sampling", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
 
 
 def test_cli_configuration_run(tmp_path):
     run_dir = tmp_path / "run"
-    out = run_cli("problem.breaks=[3,3]", "sampler.num_samples=300", "output.plots=false",
-                  f"hydra.run.dir={run_dir}", cwd=tmp_path)
+    out = run_cli(
+        "problem.breaks=[3,3]",
+        "sampler.num_samples=300",
+        "output.plots=false",
+        f"hydra.run.dir={run_dir}",
+        cwd=tmp_path,
+    )
     assert out.returncode == 0, out.stderr
     assert "AMG Sampling — Configuration analysis: distribution" in out.stdout
     assert "Θ(2,(3,3))" in out.stdout
@@ -127,9 +160,16 @@ def test_cli_configuration_run(tmp_path):
 
 def test_cli_patient_run_on_synthetic_data(tmp_path):
     run_dir = tmp_path / "run"
-    out = run_cli("problem=patient", "problem.patient_id=SYN-1", "problem.chromosomes=[1,2]",
-                  f"data.sheth_csv={SYNTHETIC}", "analysis=observed", "sampler.num_samples=300",
-                  f"hydra.run.dir={run_dir}", cwd=tmp_path)
+    out = run_cli(
+        "problem=patient",
+        "problem.patient_id=SYN-1",
+        "problem.chromosomes=[1,2]",
+        f"data.sheth_csv={SYNTHETIC}",
+        "analysis=observed",
+        "sampler.num_samples=300",
+        f"hydra.run.dir={run_dir}",
+        cwd=tmp_path,
+    )
     assert out.returncode == 0, out.stderr
     assert "Patient:          SYN-1" in out.stdout
     assert (run_dir / "rejoin_probabilities.csv").is_file()
@@ -137,7 +177,12 @@ def test_cli_patient_run_on_synthetic_data(tmp_path):
 
 
 def test_cli_reports_user_errors(tmp_path):
-    out = run_cli("analysis=observed", "sampler.num_samples=10", f"hydra.run.dir={tmp_path / 'r'}", cwd=tmp_path)
+    out = run_cli(
+        "analysis=observed",
+        "sampler.num_samples=10",
+        f"hydra.run.dir={tmp_path / 'r'}",
+        cwd=tmp_path,
+    )
     assert out.returncode == 2
     assert "needs observed rejoins" in out.stderr
 
@@ -146,14 +191,22 @@ def test_cli_patients(tmp_path):
     out = run_cli("patients", "--data", str(SYNTHETIC), cwd=tmp_path)
     assert out.returncode == 0, out.stderr
     assert "4 patients" in out.stdout and "SYN-1" in out.stdout
-    out = run_cli("patients", "--data", str(SYNTHETIC), "--patient", "SYN-3", cwd=tmp_path)
+    out = run_cli(
+        "patients", "--data", str(SYNTHETIC), "--patient", "SYN-3", cwd=tmp_path
+    )
     assert out.returncode == 0 and "not convertible" in out.stdout
     out = run_cli("patients", "--data", str(tmp_path / "missing.csv"), cwd=tmp_path)
     assert out.returncode == 2 and "docs/data.md" in out.stderr
 
 
 def test_cli_import_data(tmp_path):
-    out = run_cli("import-data", str(SYNTHETIC), "--dest", str(tmp_path / "copy.csv"), cwd=tmp_path)
+    out = run_cli(
+        "import-data",
+        str(SYNTHETIC),
+        "--dest",
+        str(tmp_path / "copy.csv"),
+        cwd=tmp_path,
+    )
     assert out.returncode == 0, out.stderr
     assert "does NOT match the reference copy" in out.stdout
     assert (tmp_path / "copy.csv").read_bytes() == SYNTHETIC.read_bytes()

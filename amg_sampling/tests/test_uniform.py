@@ -11,7 +11,6 @@ from amg_sampling.exact.enumerate import iter_states
 from amg_sampling.samplers.uniform import matching_from_ordering, sample_matching
 from amg_sampling.tests.stats import ALPHA, chi_square_gof
 
-
 # -- the counting argument, checked exhaustively ------------------------------
 
 
@@ -82,7 +81,9 @@ def test_state_frequencies_are_uniform_over_all(n, seed):
     states = list(iter_states(InitialConfiguration([n]), StateSpace.ALL))
     samples_per_state = 200
     rng = random.Random(seed)
-    observed = Counter(sample_matching(n, rng) for _ in range(samples_per_state * len(states)))
+    observed = Counter(
+        sample_matching(n, rng) for _ in range(samples_per_state * len(states))
+    )
     assert set(observed) == set(states)
     _, _, p = chi_square_gof(observed, {s: 1 / len(states) for s in states})
     assert p > ALPHA

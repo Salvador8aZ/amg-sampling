@@ -40,7 +40,9 @@ class DatasetFormatError(ValueError):
 
 
 def default_data_path() -> Path:
-    """``$AMG_SHETH_DATA`` if set, else ``data/external/nihms.csv`` in the working directory."""
+    """``$AMG_SHETH_DATA`` if set, else ``data/external/nihms.csv`` in the
+    working directory.
+    """
     return Path(os.environ.get(DATA_ENV_VAR, DEFAULT_RELATIVE_PATH))
 
 
@@ -90,14 +92,18 @@ def _integer(row: dict, column: str, line: int) -> int:
     try:
         return int(value)
     except ValueError:
-        raise DatasetFormatError(f"line {line}: column {column!r} is not an integer: {value!r}.") from None
+        raise DatasetFormatError(
+            f"line {line}: column {column!r} is not an integer: {value!r}."
+        ) from None
 
 
 def _breakpoint(row: dict, which: int, line: int) -> Breakpoint:
     prefix = f"Breakpoint {which}"
     strand = (row.get(f"{prefix} strand") or "").strip()
     if strand not in ("+", "-"):
-        raise DatasetFormatError(f"line {line}: {prefix} strand must be '+' or '-', got {strand!r}.")
+        raise DatasetFormatError(
+            f"line {line}: {prefix} strand must be '+' or '-', got {strand!r}."
+        )
     return Breakpoint(
         chromosome=_integer(row, f"{prefix} chromosome", line),
         position=_integer(row, f"{prefix} position", line),

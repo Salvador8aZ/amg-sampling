@@ -23,7 +23,8 @@ from amg_sampling.tests.paper_patient import P05_1657, TABLE_2
 SYNTHETIC = directories.test_data("synthetic_sheth.csv")
 REAL = default_data_path()
 needs_real_data = pytest.mark.skipif(
-    not REAL.is_file(), reason=f"Sheth dataset not available at {REAL} (see docs/data.md)"
+    not REAL.is_file(),
+    reason=f"Sheth dataset not available at {REAL} (see docs/data.md)",
 )
 
 
@@ -42,7 +43,11 @@ def test_load_synthetic_dataset():
     assert not ds.source.is_reference_copy
     v = ds.patients["SYN-1"].variants[0]
     assert v.source_line == 2 and v.number == 1 and v.sv_class == "inter_chr"
-    assert (v.breakpoint_1.chromosome, v.breakpoint_1.position, v.breakpoint_1.strand) == (1, 100, "+")
+    assert (
+        v.breakpoint_1.chromosome,
+        v.breakpoint_1.position,
+        v.breakpoint_1.strand,
+    ) == (1, 100, "+")
     assert ds.patients["SYN-1"].chromosomes == (1, 2)
 
 
@@ -55,8 +60,14 @@ def test_missing_file_explains_where_to_get_data(tmp_path):
     "content, message",
     [
         ("Individual,Number\nA,1\n", "missing columns"),
-        (SYNTHETIC.read_text(encoding="utf-8-sig").replace("1,+,100", "1,x,100"), "strand"),
-        (SYNTHETIC.read_text(encoding="utf-8-sig").replace("1,+,100", "1,+,1e2"), "not an integer"),
+        (
+            SYNTHETIC.read_text(encoding="utf-8-sig").replace("1,+,100", "1,x,100"),
+            "strand",
+        ),
+        (
+            SYNTHETIC.read_text(encoding="utf-8-sig").replace("1,+,100", "1,+,1e2"),
+            "not an integer",
+        ),
     ],
 )
 def test_malformed_files_are_rejected(tmp_path, content, message):
@@ -87,7 +98,10 @@ def test_conversion_of_two_linked_chromosomes(synthetic):
     pc = convert(patient, (1, 2))
     # chromosome 1: DSBs at 100, 300, 700; chromosome 2: DSB at 500.
     assert pc.theta == InitialConfiguration((3, 1))
-    assert [(e.chromosome, e.position, e.side) for e in pc.ends[:2]] == [(1, 100, "left"), (1, 100, "right")]
+    assert [(e.chromosome, e.position, e.side) for e in pc.ends[:2]] == [
+        (1, 100, "left"),
+        (1, 100, "right"),
+    ]
     # '+' uses the right end, '-' the left end.
     pairs = [(e.end_a, e.end_b) for e in pc.observed]
     assert pairs == [(1, 6), (2, 5)]
@@ -102,12 +116,16 @@ def test_unique_completion_is_marked_as_reconstructed(synthetic):
     pc = convert(synthetic["SYN-2"], [5])
     matching, inferred = pc.reconstructed_matching()
     assert matching.pairs() == ((0, 3), (1, 2))
-    assert [(e.end_a, e.end_b, e.status) for e in inferred] == [(0, 3, EdgeStatus.UNIQUE_COMPLETION)]
+    assert [(e.end_a, e.end_b, e.status) for e in inferred] == [
+        (0, 3, EdgeStatus.UNIQUE_COMPLETION)
+    ]
     assert str(cycle_structure(pc.theta, matching)) == "C2"
 
 
 def test_end_used_twice_is_an_error(synthetic):
-    with pytest.raises(ConversionError, match="used by junctions on source lines 5 and 6"):
+    with pytest.raises(
+        ConversionError, match="used by junctions on source lines 5 and 6"
+    ):
         convert(synthetic["SYN-3"], [3])
 
 
@@ -138,20 +156,27 @@ def test_table_2_chromosomes_8_and_12():
     theta, fixed = fixture_state((8, 12))
     assert theta.num_dsbs == 10 and len(fixed.free_ends) == 10
     assert count_states(theta, StateSpace.ALL, fixed) == 945
-    assert by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == TABLE_2
+    assert (
+        by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == TABLE_2
+    )
 
 
 def test_chromosome_7_has_three_completions():
     # Paper, section 7.1: two C4 realisations and one 2C2.
     theta, fixed = fixture_state((7,))
-    assert by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == {"C4": 2, "2C2": 1}
+    assert by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == {
+        "C4": 2,
+        "2C2": 1,
+    }
 
 
 @pytest.mark.parametrize("component", [(4,), (21,)])
 def test_rings_on_chromosomes_4_and_21(component):
     # Paper: vertices 2 and 3 form a ring, so 1 and 4 must be joined; one 2-cycle.
     theta, fixed = fixture_state(component)
-    assert by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == {"C2": 1}
+    assert by_string(exact_cycle_distribution(theta, StateSpace.PROPER, fixed)) == {
+        "C2": 1
+    }
 
 
 # -- the real dataset, when available ---------------------------------------------

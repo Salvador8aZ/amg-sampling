@@ -44,7 +44,9 @@ from amg_sampling.data.sheth.models import Breakpoint, PatientRecord, Structural
 
 
 class ConversionError(ValueError):
-    """The requested chromosomes cannot be represented as Θ plus a partial rejoin matching."""
+    """The requested chromosomes cannot be represented as Θ plus a partial
+    rejoin matching.
+    """
 
 
 class EdgeStatus(Enum):
@@ -63,7 +65,9 @@ class EndSite:
 
     @property
     def coordinate(self) -> int:
-        """The reference repository's vertex coordinate: position (left) or position + 1 (right)."""
+        """The reference repository's vertex coordinate: position (left) or
+        position + 1 (right).
+        """
         return self.position if self.side == "left" else self.position + 1
 
     def label(self) -> str:
@@ -92,30 +96,42 @@ class PatientConfiguration:
 
     @property
     def fixed(self) -> PartialMatching:
-        return PartialMatching(self.theta.num_ends, [(e.end_a, e.end_b) for e in self.observed])
+        return PartialMatching(
+            self.theta.num_ends, [(e.end_a, e.end_b) for e in self.observed]
+        )
 
     @property
     def free_ends(self) -> tuple[int, ...]:
         return self.fixed.free_ends
 
-    def reconstructed_matching(self) -> tuple[RejoinMatching, tuple[RejoinEdge, ...]] | None:
-        """The unique completion when at most two ends are free, with its inferred edges."""
+    def reconstructed_matching(
+        self,
+    ) -> tuple[RejoinMatching, tuple[RejoinEdge, ...]] | None:
+        """The unique completion when at most two ends are free, with its
+        inferred edges.
+        """
         free = self.free_ends
         if len(free) > 2:
             return None
         inferred = ()
         pairs = [(e.end_a, e.end_b) for e in self.observed]
         if free:
-            inferred = (RejoinEdge(free[0], free[1], EdgeStatus.UNIQUE_COMPLETION, None),)
+            inferred = (
+                RejoinEdge(free[0], free[1], EdgeStatus.UNIQUE_COMPLETION, None),
+            )
             pairs.append(free)
         return RejoinMatching.from_pairs(self.theta.num_ends, pairs), inferred
 
     def describe_theta(self) -> str:
-        return f"Θ({self.theta.num_chromosomes},({','.join(map(str, self.theta.breaks))}))"
+        return (
+            f"Θ({self.theta.num_chromosomes},({','.join(map(str, self.theta.breaks))}))"
+        )
 
 
 def chromosome_components(patient: PatientRecord) -> tuple[tuple[int, ...], ...]:
-    """Sets of chromosomes linked by observed junctions, largest (by breakpoints) first."""
+    """Sets of chromosomes linked by observed junctions, largest (by
+    breakpoints) first.
+    """
     parent: dict[int, int] = {}
 
     def find(x: int) -> int:
@@ -131,7 +147,10 @@ def chromosome_components(patient: PatientRecord) -> tuple[tuple[int, ...], ...]
     groups: dict[int, set[int]] = {}
     for c in patient.chromosomes:
         groups.setdefault(find(c), set()).add(c)
-    sizes = {root: len(_distinct_breakpoints(patient, chroms)) for root, chroms in groups.items()}
+    sizes = {
+        root: len(_distinct_breakpoints(patient, chroms))
+        for root, chroms in groups.items()
+    }
     ordered = sorted(groups, key=lambda root: (-sizes[root], min(groups[root])))
     return tuple(tuple(sorted(groups[root])) for root in ordered)
 
@@ -143,7 +162,9 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
         raise ConversionError("No chromosomes selected.")
     unknown = [c for c in chosen if c not in patient.chromosomes]
     if unknown:
-        raise ConversionError(f"{patient.patient_id} has no junction on chromosome(s) {unknown}.")
+        raise ConversionError(
+            f"{patient.patient_id} has no junction on chromosome(s) {unknown}."
+        )
     inside = set(chosen)
     variants, crossing = [], []
     for v in patient.variants:
@@ -155,7 +176,8 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
     if crossing:
         lines = ", ".join(str(v.source_line) for v in crossing)
         raise ConversionError(
-            f"Junctions on source lines {lines} join the selected chromosomes to others; "
+            f"Junctions on source lines {lines} join the selected chromosomes "
+            "to others; "
             f"select a union of components: {chromosome_components(patient)}."
         )
 
@@ -177,11 +199,14 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
             if end in used:
                 raise ConversionError(
                     f"End {ends[end].label()} is used by junctions on source lines "
-                    f"{used[end].source_line} and {v.source_line}; not a rejoin matching."
+                    f"{used[end].source_line} and {v.source_line}; "
+                    "not a rejoin matching."
                 )
             used[end] = v
         if pair[0] == pair[1]:
-            raise ConversionError(f"Junction on source line {v.source_line} joins an end to itself.")
+            raise ConversionError(
+                f"Junction on source line {v.source_line} joins an end to itself."
+            )
         observed.append(RejoinEdge(pair[0], pair[1], EdgeStatus.OBSERVED, v))
 
     notes = []
@@ -189,15 +214,23 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
     for chrom, pos in dsbs:
         if (chrom, pos + 1) in positions:
             notes.append(
-                f"Breakpoints chr{chrom}:{pos} and chr{chrom}:{pos + 1} are adjacent; they are "
+                f"Breakpoints chr{chrom}:{pos} and chr{chrom}:{pos + 1} are "
+                "adjacent; they are "
                 "kept as separate DSBs (the reference code would merge their vertices)."
             )
-    return PatientConfiguration(patient.patient_id, chosen, theta, ends, tuple(observed), tuple(notes))
+    return PatientConfiguration(
+        patient.patient_id, chosen, theta, ends, tuple(observed), tuple(notes)
+    )
 
 
 def _distinct_breakpoints(patient: PatientRecord, chromosomes) -> list[tuple[int, int]]:
     return sorted(
-        {(b.chromosome, b.position) for v in patient.variants for b in v.breakpoints if b.chromosome in chromosomes}
+        {
+            (b.chromosome, b.position)
+            for v in patient.variants
+            for b in v.breakpoints
+            if b.chromosome in chromosomes
+        }
     )
 
 

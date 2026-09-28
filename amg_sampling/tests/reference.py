@@ -58,7 +58,9 @@ def reference_cycle_parts(num_dsbs: int, rejoin_pairs) -> tuple[int, ...]:
 
 
 def all_perfect_matchings(num_ends: int) -> Iterator[tuple[tuple[int, int], ...]]:
-    """Every perfect matching of ``range(num_ends)`` as a tuple of pairs (brute force)."""
+    """Every perfect matching of ``range(num_ends)`` as a tuple of pairs
+    (brute force).
+    """
 
     def rec(remaining: tuple[int, ...]):
         if not remaining:
@@ -89,14 +91,20 @@ def reference_is_deranged(num_dsbs: int, rejoin_pairs) -> bool:
 
 
 def reference_is_proper(breaks: Sequence[int], rejoin_pairs) -> bool:
-    """Paper definition, on explicit multigraphs: connected AMG, no parallel edges in Ξ."""
+    """Paper definition, on explicit multigraphs: connected AMG, no parallel
+    edges in Ξ.
+    """
     return reference_is_deranged(sum(breaks), rejoin_pairs) and nx.is_connected(
         amg_multigraph(breaks, rejoin_pairs)
     )
 
 
-def reference_states(breaks: Sequence[int], space: str) -> set[tuple[tuple[int, int], ...]]:
-    """Brute-force state set as sorted pair tuples; ``space`` is 'all', 'deranged' or 'proper'."""
+def reference_states(
+    breaks: Sequence[int], space: str
+) -> set[tuple[tuple[int, int], ...]]:
+    """Brute-force state set as sorted pair tuples; ``space`` is 'all',
+    'deranged' or 'proper'.
+    """
     n = sum(breaks)
     keep = {
         "all": lambda pairs: True,
@@ -104,7 +112,5 @@ def reference_states(breaks: Sequence[int], space: str) -> set[tuple[tuple[int, 
         "proper": lambda pairs: reference_is_proper(breaks, pairs),
     }[space]
     return {
-        tuple(sorted(pairs))
-        for pairs in all_perfect_matchings(2 * n)
-        if keep(pairs)
+        tuple(sorted(pairs)) for pairs in all_perfect_matchings(2 * n) if keep(pairs)
     }

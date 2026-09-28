@@ -14,17 +14,18 @@ Notation: ``n`` DSBs; ``C = Σ m_l C_l`` a cycle structure (a partition of
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterator
 from fractions import Fraction
-from functools import lru_cache
+from functools import cache
 from math import comb, factorial, prod
-from typing import Iterator
 
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import CycleStructure
 
 
 def integer_partitions(n: int) -> Iterator[CycleStructure]:
-    """Every partition of ``n`` as a :class:`CycleStructure`, in reverse lexicographic order.
+    """Every partition of ``n`` as a :class:`CycleStructure`, in reverse
+    lexicographic order.
 
     For ``n = 0`` yields the empty partition once.
     """
@@ -76,8 +77,15 @@ def num_completions(num_free_ends: int) -> int:
     Derived: completions correspond one-to-one to perfect matchings of the free
     ends (theorem 1 applied to ``f`` points). ALL only; no state-space condition.
     """
-    if isinstance(num_free_ends, bool) or not isinstance(num_free_ends, int) or num_free_ends < 0 or num_free_ends % 2:
-        raise ValueError(f"num_free_ends must be a non-negative even integer, got {num_free_ends!r}.")
+    if (
+        isinstance(num_free_ends, bool)
+        or not isinstance(num_free_ends, int)
+        or num_free_ends < 0
+        or num_free_ends % 2
+    ):
+        raise ValueError(
+            f"num_free_ends must be a non-negative even integer, got {num_free_ends!r}."
+        )
     return prod(range(1, num_free_ends, 2))
 
 
@@ -102,13 +110,15 @@ def cycle_distribution_all(n: int) -> dict[CycleStructure, int]:
 
 
 def unsigned_stirling_first_kind(n: int, k: int) -> int:
-    """Unsigned Stirling number of the first kind ``[n k]``: permutations of ``n`` elements with ``k`` cycles."""
+    """Unsigned Stirling number of the first kind ``[n k]``: permutations of
+    ``n`` elements with ``k`` cycles.
+    """
     if n < 0 or k < 0:
         raise ValueError("n and k must be non-negative.")
     return _stirling(n, k)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _stirling(n: int, k: int) -> int:
     if n == k:
         return 1
@@ -118,7 +128,8 @@ def _stirling(n: int, k: int) -> int:
 
 
 def cycle_count_all(n: int, cycles: int) -> int:
-    """Number of rejoin matchings in ALL with exactly ``cycles`` exchange cycles: ``2^{n−c} [n c]``.
+    """Number of rejoin matchings in ALL with exactly ``cycles`` exchange
+    cycles: ``2^{n−c} [n c]``.
 
     Derived (``docs/theory/exact.md`` §7.2). A matching corresponds bijectively to a
     permutation of the ``n`` DSBs together with one orientation bit for every
@@ -169,25 +180,31 @@ def num_deranged_states_closed_form(n: int) -> int:
 
 
 def cycle_distribution_deranged(n: int) -> dict[CycleStructure, int]:
-    """Exact distribution over DERANGED: theorem 2 restricted to partitions with no part 1.
+    """Exact distribution over DERANGED: theorem 2 restricted to partitions
+    with no part 1.
 
     Paper, equation 3 (for Θ(1,(n))). Derived: valid for every Θ with ``n`` DSBs.
     """
     _check_n(n)
     return {
-        c: num_states_with_cycle_structure(c) for c in integer_partitions(n) if c.count(1) == 0
+        c: num_states_with_cycle_structure(c)
+        for c in integer_partitions(n)
+        if c.count(1) == 0
     }
 
 
 def num_two_cycle_deranged_states(n: int) -> int:
-    """Deranged rejoin matchings with exactly two cycles: ``2^{n−2} (n−1)! Σ_{l=2}^{n−2} 1/l``.
+    """Deranged rejoin matchings with exactly two cycles:
+    ``2^{n−2} (n−1)! Σ_{l=2}^{n−2} 1/l``.
 
     Paper, proposition 8 (for Θ(1,(n))), evaluated exactly with ``Fraction``.
     """
     _check_n(n)
     if n < 4:
         return 0
-    value = 2 ** (n - 2) * factorial(n - 1) * sum(Fraction(1, l) for l in range(2, n - 1))
+    value = (
+        2 ** (n - 2) * factorial(n - 1) * sum(Fraction(1, l) for l in range(2, n - 1))
+    )
     assert value.denominator == 1
     return value.numerator
 
@@ -196,7 +213,8 @@ def num_two_cycle_deranged_states(n: int) -> int:
 
 
 def lemma15_two_cycle_count(num_dsbs: int) -> int:
-    """Proper AMGs with exactly two exchange cycles for Θ(N−1, (2, 1, …, 1)), ``N = num_dsbs ≥ 3``.
+    """Proper AMGs with exactly two exchange cycles for Θ(N−1, (2, 1, …, 1)),
+    ``N = num_dsbs ≥ 3``.
 
     ``2^{N−2} (N−2)! (N−3)``, with cycle structures ``C_j + C_{N−j}``, ``2 ≤ j ≤ N−2``.
 
@@ -267,7 +285,9 @@ def cycle_distribution_proper(
         sub = (mask - 1) & mask
         while sub:
             if sub & low:
-                for key, m in combine(proper[sub], deranged(block_n(mask ^ sub))).items():
+                for key, m in combine(
+                    proper[sub], deranged(block_n(mask ^ sub))
+                ).items():
                     dist[key] -= m
             sub = (sub - 1) & mask
         proper[mask] = {c: m for c, m in dist.items() if m}

@@ -17,7 +17,12 @@ from amg_sampling.tests.reference import (
     amg_multigraph,
     reference_cycle_parts,
 )
-from amg_sampling.tests.strategies import breaks, matching_and_permutation, matchings, states
+from amg_sampling.tests.strategies import (
+    breaks,
+    matching_and_permutation,
+    matchings,
+    states,
+)
 
 # Paper letter labels for Θ(2,(2,2)) (figures 2 and 4): chromosome 0 is
 # a-b-c-d-e-f, chromosome 1 is g-h-i-j-k-l; telomeres a, f, g, l.
@@ -25,7 +30,9 @@ L22 = dict(b=0, c=1, d=2, e=3, h=4, i=5, j=6, k=7)
 
 
 def letters(labels, *pairs):
-    return RejoinMatching.from_pairs(len(labels), [(labels[p[0]], labels[p[1]]) for p in pairs])
+    return RejoinMatching.from_pairs(
+        len(labels), [(labels[p[0]], labels[p[1]]) for p in pairs]
+    )
 
 
 # -- CycleStructure value type -----------------------------------------------
@@ -52,7 +59,9 @@ def test_cycle_structure_string(parts, text):
 
 
 def test_from_multiplicities():
-    assert CycleStructure.from_multiplicities({2: 3, 4: 1, 1: 0}) == CycleStructure((4, 2, 2, 2))
+    assert CycleStructure.from_multiplicities({2: 3, 4: 1, 1: 0}) == CycleStructure(
+        (4, 2, 2, 2)
+    )
     with pytest.raises(ValueError):
         CycleStructure.from_multiplicities({2: -1})
 
@@ -175,7 +184,9 @@ def test_all_matchings_agree_with_networkx(n):
 @given(states())
 def test_agrees_with_networkx_multigraph(state):
     theta, r = state
-    assert cycle_structure(theta, r).parts == reference_cycle_parts(theta.num_dsbs, r.pairs())
+    assert cycle_structure(theta, r).parts == reference_cycle_parts(
+        theta.num_dsbs, r.pairs()
+    )
 
 
 @given(states())
@@ -215,7 +226,9 @@ def test_invariant_under_relabelling_both_matchings(data):
     r, perm = data
     d = RejoinMatching([v ^ 1 for v in range(r.num_ends)])
     before = cycle_structure_from_partners(d.partners, r.partners)
-    after = cycle_structure_from_partners(d.relabel(perm).partners, r.relabel(perm).partners)
+    after = cycle_structure_from_partners(
+        d.relabel(perm).partners, r.relabel(perm).partners
+    )
     assert before == after
 
 

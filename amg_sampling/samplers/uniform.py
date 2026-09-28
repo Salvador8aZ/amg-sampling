@@ -18,13 +18,14 @@ state is used.
 from __future__ import annotations
 
 import random
-from typing import Sequence
+from collections.abc import Sequence
 
 from amg_sampling.core.matching import PartialMatching, RejoinMatching
 
 
 def matching_from_ordering(ends: Sequence[int]) -> RejoinMatching:
-    """Pair consecutive positions of an ordering of the free ends: ``(ends[0], ends[1])``, ...
+    """Pair consecutive positions of an ordering of the free ends:
+    ``(ends[0], ends[1])``, ...
 
     ``ends`` must be a permutation of ``range(len(ends))`` with even length.
     """

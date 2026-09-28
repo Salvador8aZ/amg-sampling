@@ -14,16 +14,14 @@ from amg_sampling.core.statespace import (
     is_deranged,
     is_proper,
 )
+from amg_sampling.tests.paper_tables import TABLE_1, TABLE_3
 from amg_sampling.tests.reference import (
     all_perfect_matchings,
     amg_multigraph,
     compositions,
-    exchange_multigraph,
     reference_is_proper,
 )
-from amg_sampling.tests.paper_tables import TABLE_1, TABLE_3
 from amg_sampling.tests.strategies import states
-
 
 # -- deterministic -----------------------------------------------------------
 
@@ -76,6 +74,7 @@ def test_incompatible_sizes_raise():
 # These check the PROPER predicate (and cycle structures) against the paper.
 # They use a brute-force test helper, not a library enumerator.
 
+
 def proper_distribution(breaks):
     theta = InitialConfiguration(breaks)
     dist = Counter()
@@ -122,7 +121,9 @@ def test_criterion_agrees_with_explicit_graph_exhaustively(n):
         theta = InitialConfiguration(breaks)
         for pairs in all_perfect_matchings(2 * n):
             r = RejoinMatching.from_pairs(2 * n, pairs)
-            assert is_connected(theta, r) == nx.is_connected(amg_multigraph(breaks, pairs))
+            assert is_connected(theta, r) == nx.is_connected(
+                amg_multigraph(breaks, pairs)
+            )
             assert is_proper(theta, r) == reference_is_proper(breaks, pairs)
 
 
@@ -130,7 +131,9 @@ def test_criterion_agrees_with_explicit_graph_exhaustively(n):
 def test_criterion_agrees_with_explicit_graph(state):
     theta, r = state
     pairs = r.pairs()
-    assert is_connected(theta, r) == nx.is_connected(amg_multigraph(theta.breaks, pairs))
+    assert is_connected(theta, r) == nx.is_connected(
+        amg_multigraph(theta.breaks, pairs)
+    )
     assert is_proper(theta, r) == reference_is_proper(theta.breaks, pairs)
 
 

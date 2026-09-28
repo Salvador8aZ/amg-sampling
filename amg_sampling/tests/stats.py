@@ -72,7 +72,10 @@ def chi_square_gof(
     """
     unknown = set(observed) - set(probabilities)
     if unknown:
-        raise AssertionError(f"observed categories with zero probability: {sorted(map(str, unknown))[:5]}")
+        raise AssertionError(
+            "observed categories with zero probability: "
+            f"{sorted(map(str, unknown))[:5]}"
+        )
     total = sum(observed.values())
     bins: list[tuple[float, float]] = []
     pooled_obs = pooled_exp = 0.0

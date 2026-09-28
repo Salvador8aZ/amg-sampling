@@ -1,4 +1,6 @@
-"""Fixed (observed) rejoins: partial matchings, exact completions, uniform completion sampling."""
+"""Fixed (observed) rejoins: partial matchings, exact completions, uniform
+completion sampling.
+"""
 
 import random
 from collections import Counter
@@ -10,7 +12,11 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from amg_sampling.core.configuration import InitialConfiguration
-from amg_sampling.core.matching import InvalidMatchingError, PartialMatching, RejoinMatching
+from amg_sampling.core.matching import (
+    InvalidMatchingError,
+    PartialMatching,
+    RejoinMatching,
+)
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.exact.enumerate import count_states, iter_states
 from amg_sampling.exact.formulas import num_completions
@@ -18,7 +24,6 @@ from amg_sampling.samplers.rejection import SamplingStats, iter_samples
 from amg_sampling.samplers.uniform import sample_completion
 from amg_sampling.tests.reference import compositions
 from amg_sampling.tests.stats import ALPHA, chi_square_gof
-
 
 # -- PartialMatching ------------------------------------------------------------
 
@@ -30,8 +35,12 @@ def test_partial_matching_basics():
     assert f.partner(2) == 5 and f.partner(1) is None
     assert len(f) == 2
     assert f == PartialMatching(8, [(0, 7), (2, 5)])
-    assert f.is_completed_by(RejoinMatching.from_pairs(8, [(0, 7), (2, 5), (1, 3), (4, 6)]))
-    assert not f.is_completed_by(RejoinMatching.from_pairs(8, [(0, 1), (2, 5), (7, 3), (4, 6)]))
+    assert f.is_completed_by(
+        RejoinMatching.from_pairs(8, [(0, 7), (2, 5), (1, 3), (4, 6)])
+    )
+    assert not f.is_completed_by(
+        RejoinMatching.from_pairs(8, [(0, 1), (2, 5), (7, 3), (4, 6)])
+    )
 
 
 def test_partial_matching_accepts_a_one_shot_iterator():
@@ -77,7 +86,9 @@ def test_completion_enumeration_equals_filtered_enumeration(n):
             for fixed in fixed_edge_sets(theta.num_ends):
                 listed = list(iter_states(theta, space, fixed))
                 assert len(listed) == len(set(listed))
-                assert set(listed) == {r for r in everything if fixed.is_completed_by(r)}
+                assert set(listed) == {
+                    r for r in everything if fixed.is_completed_by(r)
+                }
 
 
 @given(st.data())
@@ -127,7 +138,9 @@ def test_completion_sampling_is_uniform_over_completions():
     rng = random.Random(21)
     observed = Counter(sample_completion(fixed, rng) for _ in range(150 * 15))
     assert set(observed) == completions
-    assert chi_square_gof(observed, {c: Fraction(1, 15) for c in completions})[2] > ALPHA
+    assert (
+        chi_square_gof(observed, {c: Fraction(1, 15) for c in completions})[2] > ALPHA
+    )
 
 
 @pytest.mark.parametrize(
@@ -140,11 +153,21 @@ def test_conditioned_rejection_is_uniform_on_proper_completions(breaks, pairs, s
     target = set(iter_states(theta, StateSpace.PROPER, fixed))
     stats = SamplingStats()
     draws = list(
-        iter_samples(theta, StateSpace.PROPER, random.Random(seed), 150 * len(target), stats=stats, fixed=fixed)
+        iter_samples(
+            theta,
+            StateSpace.PROPER,
+            random.Random(seed),
+            150 * len(target),
+            stats=stats,
+            fixed=fixed,
+        )
     )
     observed = Counter(draws)
     assert set(observed) == target
-    assert chi_square_gof(observed, {s: Fraction(1, len(target)) for s in target})[2] > ALPHA
+    assert (
+        chi_square_gof(observed, {s: Fraction(1, len(target)) for s in target})[2]
+        > ALPHA
+    )
     # Proposals come only from completions, so acceptance is |target| / #completions.
     assert stats.proposals >= stats.accepted
 
@@ -153,4 +176,12 @@ def test_conditioned_rejection_respects_max_proposals():
     theta = InitialConfiguration([3])
     fixed = PartialMatching(6, [(0, 1)])  # no deranged completion exists
     with pytest.raises(RuntimeError):
-        next(iter_samples(theta, StateSpace.DERANGED, random.Random(0), fixed=fixed, max_proposals_per_sample=50))
+        next(
+            iter_samples(
+                theta,
+                StateSpace.DERANGED,
+                random.Random(0),
+                fixed=fixed,
+                max_proposals_per_sample=50,
+            )
+        )

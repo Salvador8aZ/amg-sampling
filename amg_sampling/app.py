@@ -17,12 +17,31 @@ from omegaconf import DictConfig, OmegaConf
 from amg_sampling.analysis.output import write_results
 from amg_sampling.analysis.plots import make_plots, matplotlib_available
 from amg_sampling.analysis.report import format_report
-from amg_sampling.analysis.runs import ANALYSES, AnalysisError, Problem, SamplerSettings, theta_label
+from amg_sampling.analysis.runs import (
+    ANALYSES,
+    AnalysisError,
+    Problem,
+    SamplerSettings,
+    theta_label,
+)
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.statespace import StateSpace
-from amg_sampling.data.sheth import ConversionError, DatasetFormatError, chromosome_components, convert, load_dataset
+from amg_sampling.data.sheth import (
+    ConversionError,
+    DatasetFormatError,
+    chromosome_components,
+    convert,
+    load_dataset,
+)
 
-USER_ERRORS = (AnalysisError, ConversionError, DatasetFormatError, FileNotFoundError, ValueError, TypeError)
+USER_ERRORS = (
+    AnalysisError,
+    ConversionError,
+    DatasetFormatError,
+    FileNotFoundError,
+    ValueError,
+    TypeError,
+)
 
 
 def build_problem(cfg: DictConfig) -> Problem:
@@ -30,21 +49,31 @@ def build_problem(cfg: DictConfig) -> Problem:
     if kind == "configuration":
         breaks = list(cfg.problem.breaks)
         theta = InitialConfiguration([int(b) for b in breaks])
-        return Problem("configuration", theta, f"{theta_label(theta)}: {theta.num_dsbs} DSBs on {theta.num_chromosomes} chromosomes")
+        return Problem(
+            "configuration",
+            theta,
+            f"{theta_label(theta)}: {theta.num_dsbs} DSBs on "
+            f"{theta.num_chromosomes} chromosomes",
+        )
     if kind == "patient":
         path = Path(to_absolute_path(str(cfg.data.sheth_csv)))
         dataset = load_dataset(path)
         patient_id = str(cfg.problem.patient_id)
         if patient_id not in dataset.patients:
-            raise ValueError(f"Unknown patient {patient_id!r}; run 'amg-sampling patients' to list them.")
+            raise ValueError(
+                f"Unknown patient {patient_id!r}; run 'amg-sampling patients' "
+                "to list them."
+            )
         patient = dataset.patients[patient_id]
         chromosomes = cfg.problem.chromosomes
         if chromosomes is None:
             components = chromosome_components(patient)
             if len(components) > 1:
                 raise ValueError(
-                    f"{patient_id} has several components {list(components)}; set problem.chromosomes "
-                    f"(e.g. problem.chromosomes='[{','.join(map(str, components[0]))}]')."
+                    f"{patient_id} has several components {list(components)}; "
+                    "set problem.chromosomes "
+                    "(e.g. problem.chromosomes="
+                    f"'[{','.join(map(str, components[0]))}]')."
                 )
             chromosomes = components[0]
         pc = convert(patient, [int(c) for c in chromosomes])
@@ -69,13 +98,21 @@ def execute(cfg: DictConfig, output_dir: Path) -> tuple[dict, list[Path]]:
         raise ValueError("sampler.num_samples must be positive.")
     analysis = cfg.analysis.name
     if analysis not in ANALYSES:
-        raise ValueError(f"Unknown analysis {analysis!r}; choose one of {sorted(ANALYSES)}.")
-    kwargs = {"confidence": float(cfg.analysis.confidence)} if "confidence" in cfg.analysis else {}
+        raise ValueError(
+            f"Unknown analysis {analysis!r}; choose one of {sorted(ANALYSES)}."
+        )
+    kwargs = (
+        {"confidence": float(cfg.analysis.confidence)}
+        if "confidence" in cfg.analysis
+        else {}
+    )
     results = ANALYSES[analysis](problem, space, sampler, seed, **kwargs)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "config.yaml").write_text(OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8")
+    (output_dir / "config.yaml").write_text(
+        OmegaConf.to_yaml(cfg, resolve=True), encoding="utf-8"
+    )
     files = [output_dir / "config.yaml", *write_results(results, output_dir)]
     if cfg.output.plots:
         files += make_plots(results, output_dir)
@@ -96,7 +133,10 @@ def hydra_main(cfg: DictConfig) -> None:
     for path in files:
         print(f"  {path.name}")
     if cfg.output.plots and not matplotlib_available():
-        print("  (figures skipped: install the 'plots' extra, e.g. `uv sync --extra plots`)")
+        print(
+            "  (figures skipped: install the 'plots' extra, "
+            "e.g. `poetry install --extras plots`)"
+        )
 
 
 def _display_path(path: Path) -> str:
