@@ -121,7 +121,10 @@ def test_default_path_uses_environment_variable(monkeypatch, tmp_path):
     monkeypatch.setenv("AMG_SHETH_DATA", str(tmp_path / "x.csv"))
     assert default_data_path() == tmp_path / "x.csv"
     monkeypatch.delenv("AMG_SHETH_DATA")
-    assert default_data_path() == Path("data/external/nihms.csv")
+    # From a directory without data/external/, the default resolves to the
+    # repository root whether or not the dataset is installed there.
+    monkeypatch.chdir(tmp_path)
+    assert default_data_path() == directories.base("data/external/nihms.csv")
 
 
 # -- conversion (synthetic) --------------------------------------------------------
