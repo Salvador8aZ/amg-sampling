@@ -2,9 +2,9 @@ name: Python package
 
 on:
   push:
-    branches: [ "template", "main" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "template", "main" ]
+    branches: [ "main" ]
 
 permissions:
   contents: read
