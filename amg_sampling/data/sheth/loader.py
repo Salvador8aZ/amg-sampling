@@ -7,6 +7,7 @@ import hashlib
 import os
 from pathlib import Path
 
+from amg_sampling import directories
 from amg_sampling.data.sheth.models import (
     Breakpoint,
     PatientRecord,
@@ -48,10 +49,27 @@ class DatasetFormatError(ValueError):
 
 
 def default_data_path() -> Path:
-    """``$AMG_SHETH_DATA`` if set, else ``data/external/nihms.csv`` in the
-    working directory.
+    """``$AMG_SHETH_DATA`` if set, else ``data/external/nihms.csv``, resolved
+    by :func:`resolve_data_path`.
     """
-    return Path(os.environ.get(DATA_ENV_VAR, DEFAULT_RELATIVE_PATH))
+    return resolve_data_path(os.environ.get(DATA_ENV_VAR, DEFAULT_RELATIVE_PATH))
+
+
+def resolve_data_path(
+    path: str | os.PathLike, start: str | os.PathLike | None = None
+) -> Path:
+    """A relative ``path`` is taken from ``start`` (default: the working
+    directory) if it exists there, and otherwise from the repository root.
+    Runs started in a subdirectory (an IDE run configuration, a notebook) then
+    still find ``data/external/``.
+    """
+    path = Path(path)
+    if path.is_absolute():
+        return path
+    local = Path(start) / path if start is not None else path
+    if local.exists():
+        return local
+    return directories.base(path)
 
 
 def file_sha256(path: Path) -> str:
