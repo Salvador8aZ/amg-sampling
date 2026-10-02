@@ -32,6 +32,7 @@ from amg_sampling.data.sheth import (
     chromosome_components,
     convert,
     load_dataset,
+    resolve_data_path,
 )
 
 USER_ERRORS = (
@@ -56,7 +57,7 @@ def build_problem(cfg: DictConfig) -> Problem:
             f"{theta.num_chromosomes} chromosomes",
         )
     if kind == "patient":
-        path = Path(to_absolute_path(str(cfg.data.sheth_csv)))
+        path = resolve_data_path(str(cfg.data.sheth_csv), to_absolute_path("."))
         dataset = load_dataset(path)
         patient_id = str(cfg.problem.patient_id)
         if patient_id not in dataset.patients:

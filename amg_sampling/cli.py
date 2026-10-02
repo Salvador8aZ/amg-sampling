@@ -13,6 +13,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from amg_sampling import directories
+
 SUBCOMMANDS = ("patients", "import-data")
 
 
@@ -43,7 +45,9 @@ def _subcommand(argv: list[str]) -> int:
         "import-data", help="copy a local dataset file into data/external/"
     )
     importer.add_argument("source", type=Path)
-    importer.add_argument("--dest", type=Path, default=Path("data/external/nihms.csv"))
+    importer.add_argument(
+        "--dest", type=Path, default=directories.data("external/nihms.csv")
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "patients":

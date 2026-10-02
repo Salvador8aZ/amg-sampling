@@ -16,6 +16,7 @@ from amg_sampling.data.sheth import (
     convert,
     default_data_path,
     load_dataset,
+    resolve_data_path,
 )
 from amg_sampling.exact.enumerate import count_states, exact_cycle_distribution
 from amg_sampling.tests.paper_patient import P05_1657, TABLE_2
@@ -250,3 +251,17 @@ def test_real_conversion_of_p05_1657_matches_fixture():
         pc = convert(patient, component)
         assert pc.theta.breaks == spec["breaks"]
         assert tuple((e.end_a, e.end_b) for e in pc.observed) == spec["observed"]
+
+
+def test_relative_data_path_falls_back_to_repository_root(tmp_path, monkeypatch):
+    # An IDE run configuration may start in a subdirectory of the repository.
+    monkeypatch.chdir(tmp_path)
+    relative = Path("data/external/nihms.csv")
+    assert resolve_data_path(relative) == directories.base(relative)
+
+
+def test_relative_data_path_prefers_working_directory(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "local.csv").write_text("")
+    assert resolve_data_path("local.csv") == Path("local.csv")
+    assert resolve_data_path(SYNTHETIC) == SYNTHETIC

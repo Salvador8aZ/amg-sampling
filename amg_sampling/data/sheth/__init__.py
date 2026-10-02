@@ -12,6 +12,7 @@ from amg_sampling.data.sheth.loader import (
     DatasetFormatError,
     default_data_path,
     load_dataset,
+    resolve_data_path,
 )
 from amg_sampling.data.sheth.models import PatientRecord, ShethDataset
 
@@ -27,4 +28,5 @@ __all__ = [
     "convert",
     "default_data_path",
     "load_dataset",
+    "resolve_data_path",
 ]
