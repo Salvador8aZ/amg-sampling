@@ -21,7 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        # 3.14 returns with a Hydra release that supports it (see pyproject.toml).
+        python-version: ["3.11", "3.12", "3.13"]
     env:
       # Derandomised Hypothesis runs; see amg_sampling/tests/conftest.py.
       HYPOTHESIS_PROFILE: ci
