@@ -49,8 +49,9 @@ formulas or sampling.
 
 ## Installation
 
-Requires Python ≥ 3.11 and [Poetry](https://python-poetry.org). Create an
-isolated environment first (venv, Conda or pyenv), then install Poetry into it:
+Requires Python 3.11–3.13 (Hydra does not yet run on 3.14) and
+[Poetry](https://python-poetry.org). Create an isolated environment first
+(venv, Conda or pyenv), then install Poetry into it:
 
 ```bash
 git clone https://github.com/Salvador8aZ/chromosome.git
