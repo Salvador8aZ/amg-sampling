@@ -75,11 +75,10 @@ Install runtime dependencies alone, without dev tooling, with
 package install for figures (`pip install "amg_sampling[plots]"`).
 
 The patient data are **not** included; see [docs/data.md](docs/data.md).
-In short:
+They are downloaded from their source on first use, or explicitly with:
 
 ```bash
-git clone https://github.com/siddharthsheth/aberration_multigraph ../aberration_multigraph
-poetry run amg-sampling import-data ../aberration_multigraph/data/nihms.csv
+make data   # = poetry run amg-sampling fetch-data
 ```
 
 ## Quick start

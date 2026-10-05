@@ -16,8 +16,9 @@ from amg_sampling.data.sheth.models import (
     StructuralVariant,
 )
 
-# SHA-256 of data/nihms.csv in siddharthsheth/aberration_multigraph
-# (commit 188e107, "tidied data"), the file used for the paper's case study.
+# SHA-256 of data/nihms.csv in siddharthsheth/aberration_multigraph (unchanged
+# from commit 188e107, "tidied data", to 5cc6a8b), the file used for the
+# paper's case study.
 REFERENCE_SHA256 = "13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc"
 
 DATA_ENV_VAR = "AMG_SHETH_DATA"
@@ -85,8 +86,8 @@ def load_dataset(path: str | os.PathLike) -> ShethDataset:
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(
-            f"Sheth dataset not found at {path}. See docs/data.md for how to obtain it "
-            f"(or set {DATA_ENV_VAR})."
+            f"Sheth dataset not found at {path}. Run 'amg-sampling fetch-data' or "
+            f"see docs/data.md (or set {DATA_ENV_VAR})."
         )
     patients: dict[str, list[StructuralVariant]] = {}
     rows = 0

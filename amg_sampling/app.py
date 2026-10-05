@@ -34,12 +34,13 @@ from amg_sampling.data.sheth import (
     load_dataset,
     resolve_data_path,
 )
+from amg_sampling.data.sheth.fetch import fetch
 
 USER_ERRORS = (
     AnalysisError,
     ConversionError,
     DatasetFormatError,
-    FileNotFoundError,
+    OSError,  # includes FileNotFoundError and download (URLError) failures
     ValueError,
     TypeError,
 )
@@ -58,6 +59,8 @@ def build_problem(cfg: DictConfig) -> Problem:
         )
     if kind == "patient":
         path = resolve_data_path(str(cfg.data.sheth_csv), to_absolute_path("."))
+        if cfg.data.get("fetch", False):
+            path = fetch(path, str(cfg.data.url), str(cfg.data.sha256))
         dataset = load_dataset(path)
         patient_id = str(cfg.problem.patient_id)
         if patient_id not in dataset.patients:

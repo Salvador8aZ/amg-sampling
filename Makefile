@@ -41,6 +41,10 @@ coverage-html:
 	poetry run coverage html
 	@echo "HTML coverage report generated at htmlcov/index.html"
 
+# Download the Sheth dataset from its source into data/external/ (git-ignored)
+data:
+	poetry run amg-sampling fetch-data
+
 # Verify every optional dependency is isolated behind a single module.
 import-boundaries:
 	poetry run python scripts/import_boundaries.py .
@@ -86,5 +90,5 @@ test-wheel:
 	rm -rf .wheeltest
 	@echo "shipped tests pass against the installed wheel"
 
-.PHONY: test format format-check lint check coverage coverage-html \
+.PHONY: data test format format-check lint check coverage coverage-html \
         import-boundaries deps-check deadcode deadcode-baseline test-wheel
