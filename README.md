@@ -54,8 +54,8 @@ Requires Python 3.11–3.13 (Hydra does not yet run on 3.14) and
 (venv, Conda or pyenv), then install Poetry into it:
 
 ```bash
-git clone https://github.com/Salvador8aZ/chromosome.git
-cd chromosome
+git clone https://github.com/Salvador8aZ/amg-sampling.git
+cd amg-sampling
 python3 -m venv .venv
 source .venv/bin/activate
 pip install poetry
@@ -75,11 +75,10 @@ Install runtime dependencies alone, without dev tooling, with
 package install for figures (`pip install "amg_sampling[plots]"`).
 
 The patient data are **not** included; see [docs/data.md](docs/data.md).
-In short:
+They are downloaded from their source on first use, or explicitly with:
 
 ```bash
-git clone https://github.com/siddharthsheth/aberration_multigraph ../aberration_multigraph
-poetry run amg-sampling import-data ../aberration_multigraph/data/nihms.csv
+make data   # = poetry run amg-sampling fetch-data
 ```
 
 ## Quick start
