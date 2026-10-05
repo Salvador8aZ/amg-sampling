@@ -4,6 +4,8 @@
 * ``amg-sampling patients [--data PATH] [--patient ID]`` lists the Sheth patients.
 * ``amg-sampling import-data SOURCE`` copies a local copy of the dataset into
   ``data/external/`` and checks it against the reference checksum.
+* ``amg-sampling fetch-data`` downloads the dataset from its source into
+  ``data/external/`` (experiments also do this on first use; see ``conf/``).
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ from pathlib import Path
 
 from amg_sampling import directories
 
-SUBCOMMANDS = ("patients", "import-data")
+SUBCOMMANDS = ("patients", "import-data", "fetch-data")
 
 
 def main(argv: list[str] | None = None) -> int | None:
@@ -48,12 +50,20 @@ def _subcommand(argv: list[str]) -> int:
     importer.add_argument(
         "--dest", type=Path, default=directories.data("external/nihms.csv")
     )
+    fetcher = commands.add_parser(
+        "fetch-data", help="download the dataset from its source into data/external/"
+    )
+    fetcher.add_argument(
+        "--dest", type=Path, default=directories.data("external/nihms.csv")
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "patients":
             return _patients(args.data, args.patient)
+        if args.command == "fetch-data":
+            return _fetch(args.dest)
         return _import(args.source, args.dest)
-    except (FileNotFoundError, ValueError) as error:
+    except (OSError, ValueError) as error:
         print(f"amg-sampling: error: {error}", file=sys.stderr)
         return 2
 
@@ -190,4 +200,18 @@ def _import(source: Path, dest: Path) -> int:
         f"Copied to {dest} (sha256 {sha[:12]}…, {match} the reference copy "
         "used by Sheth et al.)"
     )
+    return 0
+
+
+def _fetch(dest: Path) -> int:
+    from amg_sampling.data.sheth import load_dataset
+    from amg_sampling.data.sheth.fetch import SOURCE_URL, fetch
+
+    existed = dest.is_file()
+    fetch(dest)
+    load_dataset(dest)  # validates the format
+    if existed:
+        print(f"{dest} already exists; not downloaded again.")
+    else:
+        print(f"Downloaded {SOURCE_URL}\n  to {dest} (SHA-256 verified)")
     return 0

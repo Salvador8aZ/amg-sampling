@@ -10,6 +10,8 @@ structural-variant calls, distributed as `data/nihms.csv` in
 (also in `Salvador8aZ/aberration_multigraph`).
 
 - 5 710 rows (one rearrangement junction each), 57 patients.
+- Original publication: Baca et al., Cell 153:666–677 (2013),
+  doi:[10.1016/j.cell.2013.03.027](https://doi.org/10.1016/j.cell.2013.03.027).
 - Reference copy SHA-256:
   `13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc`.
 
@@ -23,21 +25,35 @@ so **this repository does not include the data**. `data/external/` is in
 
 ## How to obtain it
 
-1. Clone the reference repository (or download only `data/nihms.csv` from it):
+The file is downloaded from its source, never from this repository, in the
+style of [Pooch](https://www.fatiando.org/pooch/) (as `python-minecraft-data`
+does for Minecraft data):
 
-   ```bash
-   git clone https://github.com/siddharthsheth/aberration_multigraph
-   ```
+- the URL is pinned to commit `5cc6a8b` of `siddharthsheth/aberration_multigraph`,
+  so it cannot change;
+- the download is kept only if its SHA-256 matches the reference copy;
+- it is cached in `data/external/nihms.csv`, with a provenance and citation
+  note in `data/external/nihms.csv.SOURCE.txt`. Both are git-ignored.
 
-2. Import the file. This checks the format and the checksum, then copies it
-   to `data/external/nihms.csv`:
+Either download it explicitly:
 
-   ```bash
-   poetry run amg-sampling import-data aberration_multigraph/data/nihms.csv
-   ```
+```bash
+make data   # = poetry run amg-sampling fetch-data
+```
 
-   Alternatively set `AMG_SHETH_DATA=/path/to/nihms.csv`, or pass
-   `data.sheth_csv=/path/to/nihms.csv` to an experiment.
+or just run a patient experiment: if `data.sheth_csv` does not exist, it is
+fetched first. The source is set in `amg_sampling/conf/config.yaml`
+(`data.url`, `data.sha256`); pass `data.fetch=false` to work offline.
+
+To use a local copy instead, run
+`poetry run amg-sampling import-data /path/to/nihms.csv`, set
+`AMG_SHETH_DATA=/path/to/nihms.csv`, or pass `data.sheth_csv=/path/to/nihms.csv`.
+An existing file is never overwritten by a download.
+
+If the download fails with `CERTIFICATE_VERIFY_FAILED` on macOS, the
+python.org installer's certificates are missing: run
+`/Applications/Python 3.x/Install Certificates.command`, or prefix the command
+with `SSL_CERT_FILE=/etc/ssl/cert.pem`.
 
 Every analysis records the file name, its SHA-256 and whether it is the
 reference copy in `results.json`.

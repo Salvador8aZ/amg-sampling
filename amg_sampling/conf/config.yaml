@@ -13,6 +13,12 @@ data:
   # Path to the Sheth / Baca et al. CSV (not distributed; see docs/data.md).
   # Relative paths are resolved against the directory the command is run from.
   sheth_csv: ${oc.env:AMG_SHETH_DATA,data/external/nihms.csv}
+  # If sheth_csv does not exist, download it on first use (like Pooch) from its
+  # source at a pinned commit, and keep it only if its SHA-256 matches.
+  # Set data.fetch=false to work offline.
+  fetch: true
+  url: https://raw.githubusercontent.com/siddharthsheth/aberration_multigraph/5cc6a8bb23d148096f80c7998207281527a40f0d/data/nihms.csv
+  sha256: 13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc
 
 output:
   plots: true   # needs the optional 'plots' extra (matplotlib); skipped otherwise
