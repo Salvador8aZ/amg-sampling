@@ -54,8 +54,8 @@ Requires Python 3.11–3.13 (Hydra does not yet run on 3.14) and
 (venv, Conda or pyenv), then install Poetry into it:
 
 ```bash
-git clone https://github.com/Salvador8aZ/chromosome.git
-cd chromosome
+git clone https://github.com/Salvador8aZ/amg-sampling.git
+cd amg-sampling
 python3 -m venv .venv
 source .venv/bin/activate
 pip install poetry
