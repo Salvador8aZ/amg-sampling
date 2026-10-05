@@ -73,6 +73,8 @@ docs/_build/
 
 # PyBuilder
 target/
+# ...but not the Hydra config group for the chain's target distribution
+!amg_sampling/conf/target/
 
 # Jupyter Notebook
 .ipynb_checkpoints

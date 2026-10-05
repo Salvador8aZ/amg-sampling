@@ -156,13 +156,16 @@ def sample_null(
     method: str = "iid",
     burn_in: int = 0,
     thin: int = 1,
+    target=None,
 ) -> NullSample:
     """Sample and count cycle structures, hits of each tracked edge, and hits of all of
     them.
 
     ``method="mcmc"`` runs one chain (``burn_in`` and ``thin`` as in
     :func:`~amg_sampling.samplers.mcmc.iter_chain`); its starting state is drawn
-    by rejection with at most ``max_proposals_per_sample`` proposals.
+    by rejection with at most ``max_proposals_per_sample`` proposals. A
+    non-uniform ``target`` (:mod:`amg_sampling.samplers.targets`) needs
+    ``method="mcmc"``.
     """
     if num_samples <= 0:
         raise ValueError("num_samples must be positive.")
@@ -170,6 +173,8 @@ def sample_null(
         raise ValueError(
             f"Unknown sampling method {method!r}; choose one of {METHODS}."
         )
+    if target is not None and method != "mcmc":
+        raise ValueError("A non-uniform target can only be sampled with mcmc.")
     stats = SamplingStats()
     k = len(track_edges)
     result = NullSample(num_samples, stats, edge_hits=[0] * k, method=method)
@@ -194,6 +199,7 @@ def sample_null(
             fixed=fixed,
             stats=stats,
             max_proposals_for_start=max_proposals_per_sample,
+            target=target,
         )
         result.batch_size = max(1, math.isqrt(num_samples))
     size = result.batch_size

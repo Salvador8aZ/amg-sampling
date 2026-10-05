@@ -22,7 +22,9 @@ def format_report(results: dict, top: int = 12) -> str:
     _problem_block(problem, add)
     add("")
     add(f"State space:      {SPACE_DESCRIPTIONS[results['state_space']]}")
-    add(f"Null model:       {results['null_model']}  (uniform combinatorial null)")
+    uniform = results.get("target", {}).get("name", "uniform") == "uniform"
+    note = "uniform combinatorial null" if uniform else "proximity-weighted target"
+    add(f"Null model:       {results['null_model']}  ({note})")
     sampling = results.get("sampling") or (results.get("null") or {}).get("sampling")
     _sampling_block(results, sampling, add)
     exact = results.get("exact") or (results.get("null") or {}).get("exact")
@@ -217,7 +219,12 @@ def _observed_sections(results, add):
         "  Share of completions: among AMGs that contain every observed rejoin "
         "(exact; sampled by"
     )
-    add("  conditional completion). Null: probability under the uniform null for Θ.")
+    model = (
+        "the uniform null"
+        if results.get("target", {}).get("name", "uniform") == "uniform"
+        else "the proximity target"
+    )
+    add(f"  conditional completion). Null: probability under {model} for Θ.")
     header = (
         f"  {'structure':<10} {'share (exact)':>19} {'share (sampled)':>20} "
         f"{'null (exact)':>13} {'null (sampled)':>24}"

@@ -172,3 +172,58 @@ flip probability `q` it matches the known `N q/(1−q)` within 25%
 - A single chain cannot detect a region of `S` it never visits. Several chains
   from dispersed starts (R̂) are future work, and matter most once targets are
   non-uniform.
+
+## 5. A proximity-weighted target (`samplers/targets.py`)
+
+**Model.** For a patient, every DSB end `u` has a chromosome `c(u)` and a
+coordinate `x(u)` (base pairs; [`data.md`](../data.md)). A rejoin edge `{u, v}`
+has weight
+
+    w(u, v) = (max(|x(u) − x(v)|, d_min) / d_0) ^ (−α)   if c(u) = c(v)
+    w(u, v) = 1                                           otherwise
+
+with `d_0 = scale_bp = 1 Mb` and `d_min = min_distance_bp = 1 kb`, and a state
+has weight `w(r) = ∏ w(e)` over its rejoin edges. The target is
+`π(r) ∝ w(r)` on `S` (or on the completions of `F` in `S`). The single
+parameter `α ≥ 0` sets how strongly nearby ends are favoured; `α = 0` is
+`Uniform(S)`. An inter-chromosomal edge weighs as much as an intra-chromosomal
+one `d_0` apart, so `d_0` also fixes the balance between the two; a separate
+inter-chromosomal weight is future work.
+
+The motivation is that rejoining needs the two ends to meet, and contact
+frequency falls with genomic distance (Hi-C contact maps decay roughly as a
+power of distance). This is a **CONJECTURE** about biology, not a result: α is
+not fitted here, and fitting it to the same junctions it is then tested on
+would be circular.
+
+**Proposition 7 (PROVED).** With acceptance probability
+`min(1, w(s)/w(r))` for a proposal `s ∈ S`, and staying put otherwise, `π` is
+stationary. Under the connectivity of Claim 5 the chain converges to `π`.
+
+*Proof.* For `r ≠ s` in `S`, `P(r → s) = q · min(1, w(s)/w(r))` with the
+symmetric `q = 1/(m(m−1))` of Corollary 3, so
+`π(r) P(r → s) = q · min(w(r), w(s)) / Z = π(s) P(s → r)`. Weights are
+positive, so the chain moves between the same states as the uniform chain:
+irreducibility and aperiodicity follow as in Proposition 6. ∎
+
+A switch changes only two edges, so `w(s)/w(r) = w(u,v) w(a,b) / (w(u,a) w(v,b))`
+is computed in `O(1)`. Fixed (observed) edges cancel.
+
+**What the analyses report.** The exact references of `analysis/reference.py`
+are for `Uniform(S)`, so with `target=proximity` they are reported as
+unavailable rather than compared with the chain. Only `sampler=mcmc` samples a
+non-uniform target, and the chain starts from a uniform draw, so `burn_in`
+matters.
+
+**Verification.**
+
+| Level | Check | Test |
+|---|---|---|
+| 0: kernel | Rows sum to 1 and `π(r) P(r → s) = π(s) P(s → r)` for every state of six layouts in all three spaces, and with a fixed rejoin | `test_kernel_satisfies_detailed_balance`, `test_kernel_with_fixed_rejoins` |
+| 1: steps | `α = 0` replays the uniform chain state for state | `test_alpha_zero_replays_the_uniform_chain` |
+| 2: distributions | Chain frequencies of cycle structures match exact weighted enumeration within 4 batch-means standard errors | `test_chain_matches_exact_weighted_distribution` |
+| 2: patient | P05-1657, chromosomes 8 and 12, `α = 1`: the chain on the 945 completions matches exact weighted enumeration | `test_proximity_chain_on_the_p05_1657_completions` (needs the dataset) |
+
+On P05-1657 (chromosomes 8 and 12) `α = 1` moves the completions from
+`C10 0.41, C8+C2 0.25, C6+C4 0.17` (uniform) to `C10 0.61, C6+C4 0.33,
+C8+C2 0.04`, with move acceptance 0.21 instead of 1.

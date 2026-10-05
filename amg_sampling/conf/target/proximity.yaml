@@ -1,0 +1,9 @@
+# Proximity-weighted rejoining (docs/theory/mcmc.md §5). Needs problem=patient
+# (breakpoint positions) and sampler=mcmc.
+#   w(rejoin) = (distance / scale_bp) ** -alpha  for ends on one chromosome
+#             = 1                                for ends on different chromosomes
+# alpha = 0 is the uniform target.
+name: proximity
+alpha: 1.0
+scale_bp: 1000000       # an inter-chromosomal rejoin weighs as much as an intra one this far apart
+min_distance_bp: 1000   # distances below this are treated as this

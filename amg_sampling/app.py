@@ -34,6 +34,7 @@ from amg_sampling.data.sheth import (
     load_dataset,
     resolve_data_path,
 )
+from amg_sampling.samplers.targets import ProximityTarget
 
 USER_ERRORS = (
     AnalysisError,
@@ -83,6 +84,28 @@ def build_problem(cfg: DictConfig) -> Problem:
     raise ValueError(f"Unknown problem kind {kind!r}.")
 
 
+def build_target(cfg: DictConfig, problem: Problem) -> ProximityTarget | None:
+    """The chain's target distribution: None for uniform."""
+    target = cfg.get("target") or {"name": "uniform"}
+    name = target.get("name", "uniform")
+    if name == "uniform":
+        return None
+    if name != "proximity":
+        raise ValueError(f"Unknown target {name!r}; choose uniform or proximity.")
+    if cfg.sampler.name != "mcmc":
+        raise ValueError("target=proximity is sampled by sampler=mcmc only.")
+    if problem.patient is None:
+        raise ValueError(
+            "target=proximity needs breakpoint positions; use problem=patient."
+        )
+    return ProximityTarget.from_patient(
+        problem.patient,
+        float(target.alpha),
+        scale_bp=int(target.get("scale_bp", 1_000_000)),
+        min_distance_bp=int(target.get("min_distance_bp", 1_000)),
+    )
+
+
 def execute(cfg: DictConfig, output_dir: Path) -> tuple[dict, list[Path]]:
     """Run the configured analysis, write result files, and return (results, files)."""
     seed = cfg.seed
@@ -96,6 +119,7 @@ def execute(cfg: DictConfig, output_dir: Path) -> tuple[dict, list[Path]]:
         max_proposals_per_sample=cfg.sampler.get("max_proposals_per_sample"),
         burn_in=int(cfg.sampler.get("burn_in", 0) or 0),
         thin=int(cfg.sampler.get("thin", 1) or 1),
+        target=build_target(cfg, problem),
     )
     if sampler.samples and sampler.num_samples <= 0:
         raise ValueError("sampler.num_samples must be positive.")

@@ -106,6 +106,10 @@ poetry run amg-sampling problem=patient analysis=observed sampler=exact
 # 6. The same with the Markov chain (2-switch moves) instead of IID sampling
 poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=mcmc analysis=observed seed=42
+
+# 7. The Markov chain with a proximity-weighted target (alpha = 0 is uniform)
+poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
+    statespace=proper sampler=mcmc target=proximity target.alpha=1.0 analysis=observed seed=42
 ```
 
 Command 2 takes about 15 s and command 4 about 3 s on a laptop.
@@ -181,6 +185,10 @@ rearrangement is in a cell.
   exhaustively for n ≤ 6.
 - MCMC with 2-switch moves (`sampler=mcmc`), validated against the exact
   kernel and exact distributions, including the paper's P05-1657 table 2.
+- A one-parameter proximity target for the chain (`target=proximity`,
+  `target.alpha`): rejoins between nearby ends on a chromosome are favoured.
+  Validated by detailed balance of the exact kernel and against exact
+  weighted enumeration (`docs/theory/mcmc.md` §5).
 - Junction homology and foreign-sequence lengths read from the dataset and
   reported with each observed rejoin.
 - Hydra experiments with saved JSON/CSV results and optional figures.
@@ -189,8 +197,8 @@ rearrangement is in a cell.
 
 **Planned (not implemented)**
 - The paper's reversal networks (the graph of AMGs linked by reversals)
-- A weighted biological rejoining model: the MCMC target, for example
-  from genomic distance and junction sequence features
+- Further biological targets: chromosome territories (a separate
+  inter-chromosomal weight), junction sequence features, calibrated alpha
 - Several chains per run with convergence diagnostics (R̂)
 - ABC-SMC
 - MLflow experiment tracking

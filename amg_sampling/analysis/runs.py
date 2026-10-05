@@ -22,13 +22,20 @@ from amg_sampling.analysis.null import (
     sample_null,
     summary_counts,
 )
-from amg_sampling.analysis.reference import completion_reference, exact_reference
+from amg_sampling.analysis.reference import (
+    CompletionReference,
+    ExactReference,
+    completion_reference,
+    exact_reference,
+)
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.cycles import CycleStructure, cycle_structure
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.data.sheth.conversion import PatientConfiguration, RejoinEdge
 from amg_sampling.data.sheth.models import SourceInfo
+from amg_sampling.exact.formulas import num_completions
 from amg_sampling.samplers.rejection import theoretical_acceptance
+from amg_sampling.samplers.targets import ProximityTarget
 
 SCHEMA_VERSION = 1
 
@@ -37,6 +44,16 @@ INTERPRETATION = (
     "in the chosen state space and compatible with the initial configuration is "
     "equally likely. They are not biological rejoining probabilities."
 )
+
+PROXIMITY_INTERPRETATION = (
+    "Probabilities are computed under a proximity-weighted model: an AMG's weight "
+    "is the product over its rejoins of (distance / {scale}) ** -{alpha} for ends "
+    "on one chromosome (distance floored at {floor}), and 1 for ends on different "
+    "chromosomes. It is a toy biological model with one parameter, alpha; the exact "
+    "results of the uniform null do not apply to it."
+)
+
+NO_EXACT = "exact results are computed for the uniform null only"
 
 
 class AnalysisError(ValueError):
@@ -59,6 +76,7 @@ class SamplerSettings:
     max_proposals_per_sample: int | None = 1_000_000
     burn_in: int = 0  # mcmc only
     thin: int = 1  # mcmc only
+    target: ProximityTarget | None = None  # mcmc only; None is uniform
 
     @property
     def samples(self) -> bool:
@@ -75,8 +93,21 @@ class SamplerSettings:
             method=self.name,
             burn_in=self.burn_in,
             thin=self.thin,
+            target=self.target,
             **kwargs,
         )
+
+    def exact_reference(self, theta, space) -> ExactReference:
+        """The uniform null's exact reference, or none for a non-uniform target."""
+        if self.target is not None:
+            return ExactReference(unavailable={"all": NO_EXACT})
+        return exact_reference(theta, space)
+
+    def completion_reference(self, theta, space, fixed) -> CompletionReference:
+        if self.target is not None:
+            total = num_completions(len(fixed.free_ends))
+            return CompletionReference(total, None, NO_EXACT)
+        return completion_reference(theta, space, fixed)
 
 
 # -- shared pieces ----------------------------------------------------------------
@@ -168,12 +199,33 @@ def header(
     sampler: SamplerSettings,
     seed: int,
 ) -> dict:
+    target = sampler.target
+    if target is None:
+        null_model, interpretation = (
+            f"Uniform({space.value.upper()}(Θ))",
+            INTERPRETATION,
+        )
+        target_dict = {"name": "uniform"}
+    else:
+        null_model = f"Proximity({space.value.upper()}(Θ); alpha={target.alpha:g})"
+        interpretation = PROXIMITY_INTERPRETATION.format(
+            scale=f"{target.scale_bp:,} bp",
+            alpha=f"{target.alpha:g}",
+            floor=f"{target.min_distance_bp:,} bp",
+        )
+        target_dict = {
+            "name": target.name,
+            "alpha": target.alpha,
+            "scale_bp": target.scale_bp,
+            "min_distance_bp": target.min_distance_bp,
+        }
     return {
         "schema_version": SCHEMA_VERSION,
         "analysis": analysis,
         "problem": problem_dict(problem),
         "state_space": space.value,
-        "null_model": f"Uniform({space.value.upper()}(Θ))",
+        "null_model": null_model,
+        "target": target_dict,
         "sampler": {
             "name": sampler.name,
             "num_samples": sampler.num_samples if sampler.samples else None,
@@ -181,7 +233,7 @@ def header(
             "thin": sampler.thin if sampler.name == "mcmc" else None,
             "seed": seed,
         },
-        "interpretation": INTERPRETATION,
+        "interpretation": interpretation,
     }
 
 
@@ -296,7 +348,7 @@ def run_distribution(
     # For a patient this describes the unconditional null Uniform(space(Θ));
     # observed rejoins are used by analysis=observed.
     theta = problem.theta
-    ref = exact_reference(theta, space)
+    ref = sampler.exact_reference(theta, space)
     results = header("distribution", problem, space, sampler, seed)
     results["exact"] = exact_dict(ref)
     sampled = sample = None
@@ -364,7 +416,7 @@ def _require_patient(problem: Problem, analysis: str) -> PatientConfiguration:
 def _null_and_edges(problem, space, sampler, seed, confidence, results) -> tuple:
     pc = problem.patient
     theta = problem.theta
-    ref = exact_reference(theta, space)
+    ref = sampler.exact_reference(theta, space)
     results["null"] = {"exact": exact_dict(ref)}
     edges = [(e.end_a, e.end_b) for e in pc.observed]
     sample = None
@@ -424,7 +476,7 @@ def run_rejoin_probability(
         )
     results = header("rejoin_probability", problem, space, sampler, seed)
     ref, sample = _null_and_edges(problem, space, sampler, seed, confidence, results)
-    completions = completion_reference(problem.theta, space, pc.fixed)
+    completions = sampler.completion_reference(problem.theta, space, pc.fixed)
     results["joint_observed_rejoins"] = _joint(
         problem, space, ref, completions, sample, confidence
     )
@@ -444,7 +496,7 @@ def run_observed(
     ref, sample = _null_and_edges(problem, space, sampler, seed, confidence, results)
 
     # 1. What the data determine.
-    completions = completion_reference(theta, space, pc.fixed)
+    completions = sampler.completion_reference(theta, space, pc.fixed)
     observed = {
         "num_observed_rejoins": len(pc.observed),
         "num_unmatched_ends": len(pc.free_ends),

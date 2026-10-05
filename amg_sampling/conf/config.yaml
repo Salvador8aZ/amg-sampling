@@ -5,6 +5,7 @@ defaults:
   - statespace: proper
   - sampler: iid
   - analysis: distribution
+  - target: uniform
   - _self_
 
 seed: 42
