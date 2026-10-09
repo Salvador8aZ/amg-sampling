@@ -42,10 +42,10 @@ include = ["data/*", "README.md"]
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.1.1"
 coverage = "^7.16.0"
-ruff = "^0.16.7"
+ruff = "^0.16.10"
 vulture = "^2.16"
 deptry = "^0.25.1"
-hypothesis = "^6.168.1"
+hypothesis = "^6.168.5"
 # Used only as an independent reference implementation in tests.
 networkx = "^3.6"
 # Lets the figure tests run; consumers get it through the `plots` extra.
