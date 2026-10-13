@@ -11,7 +11,7 @@ structural-variant calls, distributed as `data/nihms.csv` in
 
 - 5 710 rows (one rearrangement junction each), 57 patients.
 - Original publication: Baca et al., Cell 153:666–677 (2013),
-  doi:[10.1016/j.cell.2013.03.027](https://doi.org/10.1016/j.cell.2013.03.027).
+  doi:[10.1016/j.cell.2013.03.021](https://doi.org/10.1016/j.cell.2013.03.021).
 - Reference copy SHA-256:
   `13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc`.
 
