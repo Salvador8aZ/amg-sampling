@@ -141,6 +141,7 @@ def problem_dict(problem: Problem) -> dict:
             "file_name": s.file_name,
             "sha256": s.sha256,
             "is_reference_copy": s.is_reference_copy,
+            "copy": s.copy,
         }
     return out
 
@@ -154,7 +155,8 @@ def edge_dict(pc: PatientConfiguration, edge: RejoinEdge, index: int) -> dict:
         "site_a": pc.ends[edge.end_a].label(),
         "site_b": pc.ends[edge.end_b].label(),
         "status": edge.status.value,
-        "source_line": v.source_line if v else None,
+        "junction_number": v.number if v else None,  # with the patient: stable id
+        "source_line": v.source_line if v else None,  # line of the local CSV copy
         "sv_class": v.sv_class if v else None,
         "homology_length": v.homology_length if v else None,
         "foreign_sequence_length": v.foreign_sequence_length if v else None,

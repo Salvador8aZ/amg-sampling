@@ -16,10 +16,18 @@ from amg_sampling.data.sheth.models import (
     StructuralVariant,
 )
 
+# SHA-256 of nihms.csv as built by baca.to_csv from Table S3C of the Baca et
+# al. (2013) supplementary workbook, mmc3.xlsx.
+REFERENCE_SHA256 = "8b128017090d6ccd70fd62be13646467a32b92b3871c55804ae870dd96a75f35"
 # SHA-256 of data/nihms.csv in siddharthsheth/aberration_multigraph (unchanged
 # from commit 188e107, "tidied data", to 5cc6a8b), the file used for the
-# paper's case study.
-REFERENCE_SHA256 = "13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc"
+# paper's case study. Same rows as the reference copy; only the order of
+# patient P05-1657's rows differs.
+SHETH_SHA256 = "13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc"
+KNOWN_COPIES = {
+    REFERENCE_SHA256: "converted from the Baca et al. supplement",
+    SHETH_SHA256: "Sheth et al. copy",
+}
 
 DATA_ENV_VAR = "AMG_SHETH_DATA"
 DEFAULT_RELATIVE_PATH = Path("data/external/nihms.csv")
@@ -113,7 +121,9 @@ def load_dataset(path: str | os.PathLike) -> ShethDataset:
             patients.setdefault(row["Individual"].strip(), []).append(variant)
     sha = file_sha256(path)
     return ShethDataset(
-        source=SourceInfo(path.name, sha, rows, sha == REFERENCE_SHA256),
+        source=SourceInfo(
+            path.name, sha, rows, sha in KNOWN_COPIES, KNOWN_COPIES.get(sha)
+        ),
         patients={pid: PatientRecord(pid, tuple(v)) for pid, v in patients.items()},
     )
 
