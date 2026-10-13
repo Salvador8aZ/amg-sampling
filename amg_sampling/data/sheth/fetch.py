@@ -24,7 +24,7 @@ SOURCE_URL = (
 
 CITATION = """\
 Data: structural-variant calls from Baca S.C. et al., "Punctuated evolution of
-prostate cancer genomes", Cell 153:666-677 (2013), doi:10.1016/j.cell.2013.03.027.
+prostate cancer genomes", Cell 153:666-677 (2013), doi:10.1016/j.cell.2013.03.021.
 Tidied as data/nihms.csv by Sheth, Arsuaga & Sazdanovic in
 https://github.com/siddharthsheth/aberration_multigraph.
 This copy was downloaded from its source and is not redistributed by amg_sampling.
