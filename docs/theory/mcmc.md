@@ -180,21 +180,20 @@ coordinate `x(u)` (base pairs; [`data.md`](../data.md)). A rejoin edge `{u, v}`
 has weight
 
     w(u, v) = (max(|x(u) − x(v)|, d_min) / d_0) ^ (−α)   if c(u) = c(v)
-    w(u, v) = 1                                           otherwise
+    w(u, v) = exp(β)                                      otherwise
 
 with `d_0 = scale_bp = 1 Mb` and `d_min = min_distance_bp = 1 kb`, and a state
 has weight `w(r) = ∏ w(e)` over its rejoin edges. The target is
-`π(r) ∝ w(r)` on `S` (or on the completions of `F` in `S`). The single
-parameter `α ≥ 0` sets how strongly nearby ends are favoured; `α = 0` is
-`Uniform(S)`. An inter-chromosomal edge weighs as much as an intra-chromosomal
-one `d_0` apart, so `d_0` also fixes the balance between the two; a separate
-inter-chromosomal weight is future work.
+`π(r) ∝ w(r)` on `S` (or on the completions of `F` in `S`). The parameter
+`α ≥ 0` sets how strongly nearby ends are favoured, and `β`
+(`inter_log_weight`, default 0) the weight of an inter-chromosomal rejoin
+relative to an intra-chromosomal one `d_0` apart. `α = β = 0` is `Uniform(S)`.
 
 The motivation is that rejoining needs the two ends to meet, and contact
 frequency falls with genomic distance (Hi-C contact maps decay roughly as a
-power of distance). This is a **CONJECTURE** about biology, not a result: α is
-not fitted here, and fitting it to the same junctions it is then tested on
-would be circular.
+power of distance). The functional form is a **CONJECTURE** about biology;
+§6 fits its parameters to the Baca et al. junctions and tests them on
+held-out patients.
 
 **Proposition 7 (PROVED).** With acceptance probability
 `min(1, w(s)/w(r))` for a proposal `s ∈ S`, and staying put otherwise, `π` is
@@ -227,3 +226,61 @@ matters.
 On P05-1657 (chromosomes 8 and 12) `α = 1` moves the completions from
 `C10 0.41, C8+C2 0.25, C6+C4 0.17` (uniform) to `C10 0.61, C6+C4 0.33,
 C8+C2 0.04`, with move acceptance 0.21 instead of 1.
+
+## 6. Fitting the target to observed junctions (`analysis/calibration.py`)
+
+**Composite likelihood.** The exact likelihood of a patient's observed
+rejoins under `π` needs `Z`, a sum over all rejoin matchings of the component,
+which cannot be computed at realistic sizes. Instead each end `x` of an
+observed junction `{x, y}` is treated as choosing its partner among the
+admissible ends `C(x)` of its component (all ends except `x` and its own DSB's
+other end) with
+
+    P(x picks y) = w(x, y) / Σ_{z ∈ C(x)} w(x, z).
+
+This conditional-logit model has a concave log-likelihood in `(α, β)`, so the
+maximum is unique; Newton's method with step halving finds it, and standard
+errors come from the observed information. It is an approximation: choices are
+not independent (ends are matched in pairs), so the standard errors are a
+guide. If every junction joins its nearest candidate, the likelihood has no
+finite maximum (separation) and the fit is reported as not converged.
+
+**Out-of-sample test.** Patients (not junctions) are split 80/20 with a fixed
+seed, P05-1657 always in the test set so that the case study never fits its
+own null. Models are compared by the held-out log pseudo-likelihood per
+choice against `α = β = 0`.
+
+**Results** (`scripts/biological_toy.py`, seed 2026; 46 training patients,
+7 612 choices; 11 test patients, 1 964 choices; 6 components refused by
+conversion are skipped):
+
+| Model | Fit (training) | Gain per choice, train | Gain per choice, test | Test patients improved |
+|---|---|---|---|---|
+| `α` only (`β = 0`) | `α = 0.265 ± 0.006` | +0.121 | **−0.046** | 2 / 10 |
+| `α` and `β` | `α = 0.287 ± 0.004`, `β = −2.80 ± 0.03` | +0.637 | **+0.845** | 7 / 10 |
+
+With `β` fixed at 0 the fitted kernel does **not** generalise: it predicts
+held-out patients worse than uniform. Per-patient fits of `α` alone range from
+about −0.3 to +0.7 with small standard errors, because `α` has to absorb the
+balance between intra- and inter-chromosomal rejoins as well as the distance
+decay. With `β` fitted, an inter-chromosomal rejoin weighs `e^{−2.80} ≈ 0.06`
+of an intra-chromosomal one 1 Mb apart, and the model generalises. Between-
+patient heterogeneity remains (3 of 10 test patients are still predicted worse
+than uniform); a hierarchical (per-patient) model is the natural next step.
+
+**Toy example** (P05-1657, chromosomes 8 and 12, the 945 completions in
+PROPER; `exact/weighted.py`):
+
+| Model | Most probable cycle structure | Most likely single completion |
+|---|---|---|
+| Uniform | C10 (0.406) | none: all 945 tie |
+| `α` only | C10 (0.457) | C6+C4 (probability 0.017) |
+| `α` and `β` | C10 (0.463) | C6+C4 (probability 0.020) |
+
+The two notions of "most likely" differ: C10 has the most mass, but the single
+heaviest completion is a C6+C4. In this component chromosome 12 has one free
+end, so every completion has exactly one inter-chromosomal rejoin and `β`
+cancels; the two fitted models differ here only through `α`. The 2-switch chain
+reproduces both exact weighted distributions (50 000 states; total variation
+distance 0.005 and 0.004).
+

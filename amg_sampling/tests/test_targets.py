@@ -60,6 +60,9 @@ def test_edge_weights():
     )
     zero = ProximityTarget(t.chromosomes, t.coordinates, 0.0)
     assert all(zero.log_edge_weight(u, v) == 0 for u in range(6) for v in range(6))
+    inter = ProximityTarget(t.chromosomes, t.coordinates, 1.0, inter_log_weight=-2.5)
+    assert inter.log_edge_weight(0, 4) == -2.5
+    assert inter.log_edge_weight(0, 2) == t.log_edge_weight(0, 2)
 
 
 def test_invalid_parameters():
@@ -69,6 +72,8 @@ def test_invalid_parameters():
         ProximityTarget((1,), (0, 1), 1.0)
     with pytest.raises(ValueError, match="positive"):
         ProximityTarget((1, 1), (0, 1), 1.0, scale_bp=0)
+    with pytest.raises(ValueError, match="inter_log_weight"):
+        ProximityTarget((1, 1), (0, 1), 1.0, inter_log_weight=math.inf)
 
 
 # -- level 0: detailed balance --------------------------------------------------------

@@ -114,6 +114,7 @@ def build_target(cfg: DictConfig, problem: Problem) -> ProximityTarget | None:
         float(target.alpha),
         scale_bp=int(target.get("scale_bp", 1_000_000)),
         min_distance_bp=int(target.get("min_distance_bp", 1_000)),
+        inter_log_weight=float(target.get("inter_log_weight", 0.0)),
     )
 
 

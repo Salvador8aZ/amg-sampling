@@ -29,9 +29,11 @@ class ProximityTarget:
 
     An edge joining ends at distance ``d`` (base pairs) on one chromosome has
     weight ``(d / scale_bp) ** (-alpha)``, with ``d`` floored at
-    ``min_distance_bp``. An edge between two chromosomes has weight 1, the
-    weight of an intra-chromosomal edge at distance ``scale_bp``. ``alpha = 0``
-    is the uniform target.
+    ``min_distance_bp``. An edge between two chromosomes has weight
+    ``exp(inter_log_weight)``; the default 0 gives weight 1, the weight of an
+    intra-chromosomal edge at distance ``scale_bp``. ``alpha = 0`` with
+    ``inter_log_weight = 0`` is the uniform target. Both parameters can be
+    fitted to observed junctions (:mod:`amg_sampling.analysis.calibration`).
     """
 
     chromosomes: tuple[int, ...]  # per end
@@ -39,6 +41,7 @@ class ProximityTarget:
     alpha: float
     scale_bp: int = MB
     min_distance_bp: int = 1_000
+    inter_log_weight: float = 0.0
 
     name = "proximity"
 
@@ -47,6 +50,10 @@ class ProximityTarget:
             raise ValueError("chromosomes and coordinates must have equal length.")
         if not math.isfinite(self.alpha) or self.alpha < 0:
             raise ValueError(f"alpha must be finite and >= 0, got {self.alpha}.")
+        if not math.isfinite(self.inter_log_weight):
+            raise ValueError(
+                f"inter_log_weight must be finite, got {self.inter_log_weight}."
+            )
         if self.scale_bp <= 0 or self.min_distance_bp <= 0:
             raise ValueError("scale_bp and min_distance_bp must be positive.")
 
@@ -61,7 +68,7 @@ class ProximityTarget:
 
     def log_edge_weight(self, u: int, v: int) -> float:
         if self.chromosomes[u] != self.chromosomes[v]:
-            return 0.0
+            return self.inter_log_weight
         d = max(abs(self.coordinates[u] - self.coordinates[v]), self.min_distance_bp)
         return -self.alpha * math.log(d / self.scale_bp)
 
@@ -70,4 +77,7 @@ class ProximityTarget:
         return sum(self.log_edge_weight(u, v) for u, v in enumerate(partners) if u < v)
 
     def describe(self) -> str:
-        return f"proximity, alpha = {self.alpha:g}"
+        text = f"proximity, alpha = {self.alpha:g}"
+        if self.inter_log_weight:
+            text += f", inter-chromosomal log-weight = {self.inter_log_weight:g}"
+        return text
