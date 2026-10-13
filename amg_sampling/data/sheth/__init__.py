@@ -8,7 +8,9 @@ from amg_sampling.data.sheth.conversion import (
     convert,
 )
 from amg_sampling.data.sheth.loader import (
+    KNOWN_COPIES,
     REFERENCE_SHA256,
+    SHETH_SHA256,
     DatasetFormatError,
     default_data_path,
     load_dataset,
@@ -17,7 +19,9 @@ from amg_sampling.data.sheth.loader import (
 from amg_sampling.data.sheth.models import PatientRecord, ShethDataset
 
 __all__ = [
+    "KNOWN_COPIES",
     "REFERENCE_SHA256",
+    "SHETH_SHA256",
     "ConversionError",
     "DatasetFormatError",
     "EdgeStatus",

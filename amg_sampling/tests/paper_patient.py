@@ -1,7 +1,9 @@
 """Structure of patient P05-1657 (paper section 7.1, figure 13, table 2).
 
-Derived by ``amg_sampling.data.sheth.convert`` from the reference copy of the
-dataset (SHA-256 13a70c63…) and recorded here as labels only (DSB counts per
+Derived by ``amg_sampling.data.sheth.convert`` from the Sheth et al. copy of the
+dataset (SHA-256 13a70c63…; the copy converted from the Baca et al. supplement,
+8b128017…, gives the same structure with the observed edges listed in junction
+order) and recorded here as labels only (DSB counts per
 chromosome and observed rejoin end pairs), with no positions or other source
 fields, so the regression tests run without the data file.
 The DSB counts per chromosome (4: 2, 7: 4, 8: 9, 12: 1, 21: 2) match the paper.

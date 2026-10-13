@@ -1,10 +1,10 @@
 """Typed records for the structural-variant table used by Sheth et al. (2026).
 
 The table is the prostate-cancer rearrangement data of Baca et al., *Punctuated
-evolution of prostate cancer genomes*, Cell 153:666–677 (2013), as distributed
-in the reference repository ``siddharthsheth/aberration_multigraph`` under
-``data/nihms.csv``. It is **not** included in this repository (see
-``docs/data.md``).
+evolution of prostate cancer genomes*, Cell 153:666–677 (2013): Table S3C of its
+supplementary material, converted to ``nihms.csv`` (the name used by the
+reference repository ``siddharthsheth/aberration_multigraph``). It is **not**
+included in this repository (see ``docs/data.md``).
 
 Each CSV row is one rearrangement junction joining two breakpoints. Only
 fields that are present in the source are stored here:
@@ -92,7 +92,8 @@ class SourceInfo:
     file_name: str
     sha256: str
     rows: int
-    is_reference_copy: bool  # sha256 equals the copy used by the Sheth repository
+    is_reference_copy: bool  # sha256 is one of the known copies (loader.KNOWN_COPIES)
+    copy: str | None = None  # which known copy, if any
 
 
 @dataclass(frozen=True, slots=True)

@@ -3,9 +3,10 @@
 * ``amg-sampling [hydra overrides...]`` runs an experiment (see ``conf/``).
 * ``amg-sampling patients [--data PATH] [--patient ID]`` lists the Sheth patients.
 * ``amg-sampling import-data SOURCE`` copies a local copy of the dataset into
-  ``data/external/`` and checks it against the reference checksum.
-* ``amg-sampling fetch-data`` downloads the dataset from its source into
-  ``data/external/`` (experiments also do this on first use; see ``conf/``).
+  ``data/external/`` and checks it against the known checksums.
+* ``amg-sampling fetch-data`` downloads the dataset from the Baca et al.
+  supplement (or, failing that, the Sheth et al. copy) into ``data/external/``
+  (experiments also do this on first use; see ``conf/``).
 """
 
 from __future__ import annotations
@@ -81,11 +82,7 @@ def _patients(data: Path | None, patient_id: str | None) -> int:
     path = data or default_data_path()
     dataset = load_dataset(path)
     source = dataset.source
-    tag = (
-        "reference copy"
-        if source.is_reference_copy
-        else "differs from the reference copy"
-    )
+    tag = source.copy if source.is_reference_copy else "not a reference copy"
     print(
         f"{source.file_name}: {source.rows:,} junctions, "
         f"{len(dataset.patients)} patients ({tag})"
@@ -186,7 +183,7 @@ def _count(value: int) -> str:
 
 
 def _import(source: Path, dest: Path) -> int:
-    from amg_sampling.data.sheth import REFERENCE_SHA256, load_dataset
+    from amg_sampling.data.sheth import KNOWN_COPIES, load_dataset
     from amg_sampling.data.sheth.loader import file_sha256
 
     if not source.is_file():
@@ -195,23 +192,18 @@ def _import(source: Path, dest: Path) -> int:
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, dest)
     sha = file_sha256(dest)
-    match = "matches" if sha == REFERENCE_SHA256 else "does NOT match"
-    print(
-        f"Copied to {dest} (sha256 {sha[:12]}…, {match} the reference copy "
-        "used by Sheth et al.)"
-    )
+    known = KNOWN_COPIES.get(sha, "does NOT match a reference copy")
+    print(f"Copied to {dest} (sha256 {sha[:12]}…, {known})")
     return 0
 
 
 def _fetch(dest: Path) -> int:
     from amg_sampling.data.sheth import load_dataset
-    from amg_sampling.data.sheth.fetch import SOURCE_URL, fetch
+    from amg_sampling.data.sheth.fetch import fetch
 
     existed = dest.is_file()
-    fetch(dest)
+    fetch(dest, notify=print)
     load_dataset(dest)  # validates the format
     if existed:
         print(f"{dest} already exists; not downloaded again.")
-    else:
-        print(f"Downloaded {SOURCE_URL}\n  to {dest} (SHA-256 verified)")
     return 0

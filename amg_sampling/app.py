@@ -60,7 +60,15 @@ def build_problem(cfg: DictConfig) -> Problem:
     if kind == "patient":
         path = resolve_data_path(str(cfg.data.sheth_csv), to_absolute_path("."))
         if cfg.data.get("fetch", False):
-            path = fetch(path, str(cfg.data.url), str(cfg.data.sha256))
+            path = fetch(
+                path,
+                baca_url=cfg.data.baca_url,
+                doi=cfg.data.doi,
+                sheth_url=cfg.data.sheth_url,
+                sha256=str(cfg.data.sha256),
+                sheth_sha256=str(cfg.data.sheth_sha256),
+                notify=print,
+            )
         dataset = load_dataset(path)
         patient_id = str(cfg.problem.patient_id)
         if patient_id not in dataset.patients:

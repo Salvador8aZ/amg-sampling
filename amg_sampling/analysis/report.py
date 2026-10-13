@@ -54,9 +54,9 @@ def _problem_block(problem, add):
         source = problem.get("data_source")
         if source:
             tag = (
-                "reference copy"
+                source.get("copy") or "reference copy"
                 if source["is_reference_copy"]
-                else "NOT the reference copy"
+                else "NOT a reference copy"
             )
             add(
                 f"Data:             {source['file_name']} "
@@ -251,6 +251,15 @@ def _sequence_features(row) -> str:
     return "".join(f"; {p}" for p in parts)
 
 
+def _junction(row) -> str:
+    """``; junction 11 (CSV line 315)`` for an observed junction, else ``""``."""
+    if row.get("source_line") is None:
+        return ""
+    number = row.get("junction_number")
+    line = f"CSV line {row['source_line']}"
+    return f"; junction {number} ({line})" if number is not None else f"; {line}"
+
+
 def _rejoin_sections(results, add):
     add("")
     add("Observed rejoin edges: probability of each edge under the null")
@@ -258,7 +267,7 @@ def _rejoin_sections(results, add):
         text = r.get("null_probability_text", "not sampled")
         add(f"  {r['edge']:<4} {r['site_a']:>26} — {r['site_b']:<26} {text}")
         add(
-            f"       [{r['status']}; source line {r['source_line']}; "
+            f"       [{r['status']}{_junction(r)}; "
             f"class {r['sv_class']}{_sequence_features(r)}]"
         )
     joint = results.get("joint_observed_rejoins")

@@ -41,7 +41,7 @@ coverage-html:
 	poetry run coverage html
 	@echo "HTML coverage report generated at htmlcov/index.html"
 
-# Download the Sheth dataset from its source into data/external/ (git-ignored)
+# Download the Baca et al. dataset into data/external/nihms.csv (git-ignored)
 data:
 	poetry run amg-sampling fetch-data
 

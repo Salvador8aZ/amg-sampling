@@ -13,12 +13,17 @@ data:
   # Path to the Sheth / Baca et al. CSV (not distributed; see docs/data.md).
   # Relative paths are resolved against the directory the command is run from.
   sheth_csv: ${oc.env:AMG_SHETH_DATA,data/external/nihms.csv}
-  # If sheth_csv does not exist, download it on first use (like Pooch) from its
-  # source at a pinned commit, and keep it only if its SHA-256 matches.
-  # Set data.fetch=false to work offline.
+  # If sheth_csv does not exist, download it on first use (like Pooch), and
+  # keep it only if its SHA-256 matches. Sources, in order: the Baca et al.
+  # supplementary workbook (Table S3C, converted to CSV); the same workbook
+  # located again from the paper's DOI; the Sheth et al. CSV at a pinned
+  # commit. Set a source to null to skip it, data.fetch=false to work offline.
   fetch: true
-  url: https://raw.githubusercontent.com/siddharthsheth/aberration_multigraph/5cc6a8bb23d148096f80c7998207281527a40f0d/data/nihms.csv
-  sha256: 13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc
+  baca_url: https://ars.els-cdn.com/content/image/1-s2.0-S0092867413003437-mmc3.xlsx
+  doi: 10.1016/j.cell.2013.03.021
+  sha256: 8b128017090d6ccd70fd62be13646467a32b92b3871c55804ae870dd96a75f35
+  sheth_url: https://raw.githubusercontent.com/siddharthsheth/aberration_multigraph/5cc6a8bb23d148096f80c7998207281527a40f0d/data/nihms.csv
+  sheth_sha256: 13a70c63d09af08b423fe372fd09a4d6c1299bb9ad5a1424e9cc490af1a6a3bc
 
 output:
   plots: true   # needs the optional 'plots' extra (matplotlib); skipped otherwise
