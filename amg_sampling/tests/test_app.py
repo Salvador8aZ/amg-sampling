@@ -251,5 +251,5 @@ def test_cli_import_data(tmp_path):
         cwd=tmp_path,
     )
     assert out.returncode == 0, out.stderr
-    assert "does NOT match the reference copy" in out.stdout
+    assert "does NOT match a reference copy" in out.stdout
     assert (tmp_path / "copy.csv").read_bytes() == SYNTHETIC.read_bytes()

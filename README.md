@@ -75,7 +75,10 @@ Install runtime dependencies alone, without dev tooling, with
 package install for figures (`pip install "amg_sampling[plots]"`).
 
 The patient data are **not** included; see [docs/data.md](docs/data.md).
-They are downloaded from their source on first use, or explicitly with:
+They are Table S3C of the supplementary material of Baca et al. (2013),
+downloaded from the publisher and converted to `data/external/nihms.csv` on
+first use (falling back to the copy distributed by Sheth et al.), or
+explicitly with:
 
 ```bash
 make data   # = poetry run amg-sampling fetch-data

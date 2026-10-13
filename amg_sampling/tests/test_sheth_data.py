@@ -8,7 +8,7 @@ from amg_sampling.core.cycles import cycle_structure
 from amg_sampling.core.matching import PartialMatching
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.data.sheth import (
-    REFERENCE_SHA256,
+    KNOWN_COPIES,
     ConversionError,
     DatasetFormatError,
     EdgeStatus,
@@ -167,7 +167,8 @@ def test_unique_completion_is_marked_as_reconstructed(synthetic):
 
 def test_end_used_twice_is_an_error(synthetic):
     with pytest.raises(
-        ConversionError, match="used by junctions on source lines 5 and 6"
+        ConversionError,
+        match=r"used by junctions 1 \(CSV line 5\) and 2 \(CSV line 6\)",
     ):
         convert(synthetic["SYN-3"], [3])
 
@@ -226,9 +227,10 @@ def test_rings_on_chromosomes_4_and_21(component):
 
 
 @needs_real_data
-def test_real_dataset_is_the_reference_copy():
+def test_real_dataset_is_a_reference_copy():
     ds = load_dataset(REAL)
-    assert ds.source.sha256 == REFERENCE_SHA256
+    assert ds.source.sha256 in KNOWN_COPIES
+    assert ds.source.copy == KNOWN_COPIES[ds.source.sha256]
     assert ds.source.rows == 5710
     assert len(ds.patients) == 57
 
@@ -241,9 +243,20 @@ def test_real_sequence_features():
     # (source line 5573) has NaN in both.
     assert sum(v.homology_length is None for v in variants) == 125
     assert sum(v.foreign_sequence_length is None for v in variants) == 125
-    p05 = ds.patients["P05-1657"].variants
-    assert [v.homology_length for v in p05] == [0, 1, 4, 0, 11, 0, 2, 2, 3]
-    assert [v.foreign_sequence_length for v in p05] == [0] * 9
+    # Keyed by junction number: the known copies order P05-1657 differently.
+    p05 = {v.number: v for v in ds.patients["P05-1657"].variants}
+    assert {n: v.homology_length for n, v in p05.items()} == {
+        4: 1,
+        11: 0,
+        17: 11,
+        26: 3,
+        48: 4,
+        165: 2,
+        168: 0,
+        285: 0,
+        354: 2,
+    }
+    assert {v.foreign_sequence_length for v in p05.values()} == {0}
 
 
 @needs_real_data
@@ -253,7 +266,10 @@ def test_real_conversion_of_p05_1657_matches_fixture():
     for component, spec in P05_1657.items():
         pc = convert(patient, component)
         assert pc.theta.breaks == spec["breaks"]
-        assert tuple((e.end_a, e.end_b) for e in pc.observed) == spec["observed"]
+        # Edges follow row order, which differs between the known copies.
+        assert sorted((e.end_a, e.end_b) for e in pc.observed) == sorted(
+            spec["observed"]
+        )
 
 
 def test_relative_data_path_falls_back_to_repository_root(tmp_path, monkeypatch):

@@ -174,9 +174,9 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
         elif n_in == 1:
             crossing.append(v)
     if crossing:
-        lines = ", ".join(str(v.source_line) for v in crossing)
+        lines = ", ".join(_ref(v) for v in crossing)
         raise ConversionError(
-            f"Junctions on source lines {lines} join the selected chromosomes "
+            f"Junctions {lines} join the selected chromosomes "
             "to others; "
             f"select a union of components: {chromosome_components(patient)}."
         )
@@ -198,15 +198,13 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
         for end in pair:
             if end in used:
                 raise ConversionError(
-                    f"End {ends[end].label()} is used by junctions on source lines "
-                    f"{used[end].source_line} and {v.source_line}; "
+                    f"End {ends[end].label()} is used by junctions "
+                    f"{_ref(used[end])} and {_ref(v)}; "
                     "not a rejoin matching."
                 )
             used[end] = v
         if pair[0] == pair[1]:
-            raise ConversionError(
-                f"Junction on source line {v.source_line} joins an end to itself."
-            )
+            raise ConversionError(f"Junction {_ref(v)} joins an end to itself.")
         observed.append(RejoinEdge(pair[0], pair[1], EdgeStatus.OBSERVED, v))
 
     notes = []
@@ -221,6 +219,11 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
     return PatientConfiguration(
         patient.patient_id, chosen, theta, ends, tuple(observed), tuple(notes)
     )
+
+
+def _ref(v: StructuralVariant) -> str:
+    """``11 (CSV line 315)``: junction Number, then the line of the local copy."""
+    return f"{v.number} (CSV line {v.source_line})"
 
 
 def _distinct_breakpoints(patient: PatientRecord, chromosomes) -> list[tuple[int, int]]:
