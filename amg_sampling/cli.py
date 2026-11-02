@@ -44,6 +44,12 @@ def _subcommand(argv: list[str]) -> int:
     patients.add_argument(
         "--patient", default=None, help="show the chromosome components of one patient"
     )
+    patients.add_argument(
+        "--strand-convention",
+        choices=("baca", "sheth2026"),
+        default="baca",
+        help="strand sign -> DSB end mapping (default: baca, the correct one)",
+    )
     importer = commands.add_parser(
         "import-data", help="copy a local dataset file into data/external/"
     )
@@ -60,7 +66,7 @@ def _subcommand(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "patients":
-            return _patients(args.data, args.patient)
+            return _patients(args.data, args.patient, args.strand_convention)
         if args.command == "fetch-data":
             return _fetch(args.dest)
         return _import(args.source, args.dest)
@@ -69,7 +75,9 @@ def _subcommand(argv: list[str]) -> int:
         return 2
 
 
-def _patients(data: Path | None, patient_id: str | None) -> int:
+def _patients(
+    data: Path | None, patient_id: str | None, convention: str = "baca"
+) -> int:
     from amg_sampling.data.sheth import (
         ConversionError,
         chromosome_components,
@@ -100,7 +108,7 @@ def _patients(data: Path | None, patient_id: str | None) -> int:
         for component in chromosome_components(patient):
             chroms = ",".join(map(str, component))
             try:
-                pc = convert(patient, component)
+                pc = convert(patient, component, convention)
             except ConversionError as error:
                 rows.append((chroms, "—", "", "", "", f"not convertible: {error}"))
                 continue
@@ -151,7 +159,7 @@ def _patients(data: Path | None, patient_id: str | None) -> int:
         )
         largest = components[0]
         try:
-            pc = convert(patient, largest)
+            pc = convert(patient, largest, convention)
             detail = (
                 f"{','.join(map(str, largest))}: {pc.theta.num_dsbs}, "
                 f"{len(pc.free_ends)}"

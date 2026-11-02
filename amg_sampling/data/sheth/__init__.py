@@ -1,6 +1,8 @@
 """Adapter for the structural-variant table used by Sheth et al. (2026)."""
 
 from amg_sampling.data.sheth.conversion import (
+    DEFAULT_CONVENTION,
+    STRAND_CONVENTIONS,
     ConversionError,
     EdgeStatus,
     PatientConfiguration,
@@ -19,9 +21,11 @@ from amg_sampling.data.sheth.loader import (
 from amg_sampling.data.sheth.models import PatientRecord, ShethDataset
 
 __all__ = [
+    "DEFAULT_CONVENTION",
     "KNOWN_COPIES",
     "REFERENCE_SHA256",
     "SHETH_SHA256",
+    "STRAND_CONVENTIONS",
     "ConversionError",
     "DatasetFormatError",
     "EdgeStatus",

@@ -27,6 +27,7 @@ from amg_sampling.analysis.runs import (
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.statespace import StateSpace
 from amg_sampling.data.sheth import (
+    DEFAULT_CONVENTION,
     ConversionError,
     DatasetFormatError,
     chromosome_components,
@@ -89,7 +90,8 @@ def build_problem(cfg: DictConfig) -> Problem:
                     f"'[{','.join(map(str, components[0]))}]')."
                 )
             chromosomes = components[0]
-        pc = convert(patient, [int(c) for c in chromosomes])
+        convention = cfg.problem.get("strand_convention", DEFAULT_CONVENTION)
+        pc = convert(patient, [int(c) for c in chromosomes], convention)
         label = f"{patient_id} chromosomes {', '.join(map(str, pc.chromosomes))}"
         return Problem("patient", pc.theta, label, pc, dataset.source)
     raise ValueError(f"Unknown problem kind {kind!r}.")

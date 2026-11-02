@@ -4,3 +4,7 @@ patient_id: P05-1657
 # Chromosomes to analyse: a union of components linked by observed junctions.
 # null selects the patient's only component (an error lists them if there are several).
 chromosomes: [8, 12]
+# Strand sign -> DSB end. baca (correct, dRanger semantics): '+' = DNA left of
+# the break is joined (left end), '-' = right end. sheth2026: the reversed
+# mapping used in the paper, kept only to reproduce its figures.
+strand_convention: baca

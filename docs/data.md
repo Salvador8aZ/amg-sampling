@@ -136,10 +136,40 @@ See `amg_sampling/data/sheth/conversion.py` for details.
 | Junction breakpoints (chromosome, position, strand) | **observed** (in the data) |
 | Patient split into chromosome components linked by junctions | Sheth methodology (paper §7.1): no exchange assumed between unlinked chromosomes |
 | Every distinct breakpoint is one DSB, ordered along its chromosome | reconstructed |
-| Strand `+` → the DSB's right end, `-` → its left end | reference-repository convention; reproduces the paper's table 2, but the biological strand semantics are not independently verified |
+| Strand `+` → the DSB's left end, `-` → its right end | dRanger semantics of the source data (see [Strand convention](#strand-convention)); `problem.strand_convention=sheth2026` selects the paper's reversed mapping |
 | Each junction is a rejoin edge between those two ends | observed junction, with a reconstructed end assignment |
 | Ends not in any junction | **unmatched**: their partners are unknown, and completions are enumerated or sampled |
 | The only possible completion when exactly two ends are unmatched | reconstructed (labelled "unique completion", never "observed") |
+
+### Strand convention
+
+Each breakpoint's strand sign says which side of the break is fused into the
+junction (Baca et al. 2013 called rearrangements with dRanger):
+
+- `+`: the DNA to the **left** of the break (lower coordinates) is joined:
+  the DSB's left end `2j`, labelled `position`.
+- `-`: the DNA to the **right** of the break is joined: the right end `2j+1`,
+  labelled `position + 1`.
+
+This is why Baca's "potential deletion" class is always `(+, -)`: the outer
+flanks are joined and the middle is lost. Table S3B copy number confirms it,
+e.g. the ~3 Mb TMPRSS2–ERG deletion in P05-1657 (junction #26, chr21
+40,004,715 `+` → 42,873,767 `-`; log2 −0.52 between the breaks, ≈0 outside).
+The full evidence is in the `shethupdated` project
+(`results/strand_convention_evidence.md`).
+
+Sheth et al. (2026) and their reference code
+(`nihms_patient.py::_rejoin_edges`: `if loc1 == '+': bp1 += 1`) used the
+reverse mapping. It is kept as `problem.strand_convention=sheth2026` (and
+`amg-sampling patients --strand-convention sheth2026`) only to reproduce the
+paper's figure 13.
+
+Switching convention moves every rejoin to the other end of its own DSB. That
+is a relabelling of ends, so **cycle-structure counts are unchanged** (table 2,
+945 completions, C10 at 40.63%). What changes is *which* ends are observed and
+which are free, and so the genomic reading of every inferred rejoin, the
+proximity weights (negligibly: the fitted α and β agree to four digits) and
+the per-end rejoin probabilities.
 
 Conversion refuses, rather than silently alters, components where a DSB end
 would be used by two junctions. This affects 6 components in 6 patients

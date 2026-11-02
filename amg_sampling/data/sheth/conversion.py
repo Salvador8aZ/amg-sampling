@@ -15,10 +15,22 @@ reference repository (``examples/patient_analysis/nihms_patient.py``):
    is a DSB. DSBs are ordered by chromosome, then position. DSB ``j`` has a left end
    ``2j`` (joined by chromatin towards lower coordinates, labelled ``position``)
    and a right end ``2j+1`` (labelled ``position + 1``).
-3. **Rejoin ends.** A junction with strand ``+`` at a breakpoint uses that DSB's
-   right end; strand ``-`` uses its left end. This is the reference
-   repository's convention. It reproduces the paper's table 2, but its
-   biological strand semantics are not independently verified here.
+3. **Rejoin ends.** The strand sign says which side of the break is fused into
+   the junction. Default (``convention="baca"``, the dRanger semantics of the
+   source data, Baca et al. 2013): strand ``+`` means the DNA to the *left* of
+   the break (lower coordinates) is joined, so the junction uses that DSB's
+   left end; strand ``-`` uses its right end. This is why Baca's "potential
+   deletion" class is always ``(+, -)``: the outer flanks are joined and the
+   middle is lost, as the Table S3B copy number confirms (e.g. the ~3 Mb
+   TMPRSS2-ERG deletion in P05-1657, junction #26).
+
+   ``convention="sheth2026"`` is the reverse mapping (``+`` -> right end)
+   used by Sheth et al. 2026 and their reference repository
+   (``nihms_patient.py::_rejoin_edges``: ``if loc1 == '+': bp1 += 1``). It is
+   kept only to reproduce the paper's figures. Flipping the convention moves
+   every rejoin to the other end of its own DSB: cycle-structure counts are
+   unchanged, but which ends are observed and which are free, and hence
+   proximity weights and rejoin probabilities, change.
 4. **Missing rejoins.** Ends not used by any junction are *free*. Their
    partners are unknown; completions are enumerated or sampled, never invented.
    When exactly two ends are free, the completion is unique. That edge is
@@ -41,6 +53,14 @@ from enum import Enum
 from amg_sampling.core.configuration import InitialConfiguration
 from amg_sampling.core.matching import PartialMatching, RejoinMatching
 from amg_sampling.data.sheth.models import Breakpoint, PatientRecord, StructuralVariant
+
+# Which end of a DSB a strand sign selects: 0 = left end (2j, labelled
+# ``position``), 1 = right end (2j+1, labelled ``position + 1``).
+STRAND_CONVENTIONS: dict[str, dict[str, int]] = {
+    "baca": {"+": 0, "-": 1},
+    "sheth2026": {"+": 1, "-": 0},
+}
+DEFAULT_CONVENTION = "baca"
 
 
 class ConversionError(ValueError):
@@ -65,9 +85,7 @@ class EndSite:
 
     @property
     def coordinate(self) -> int:
-        """The reference repository's vertex coordinate: position (left) or
-        position + 1 (right).
-        """
+        """Vertex coordinate: position (left end) or position + 1 (right end)."""
         return self.position if self.side == "left" else self.position + 1
 
     def label(self) -> str:
@@ -93,6 +111,7 @@ class PatientConfiguration:
     ends: tuple[EndSite, ...]
     observed: tuple[RejoinEdge, ...]
     notes: tuple[str, ...]
+    convention: str = DEFAULT_CONVENTION
 
     @property
     def fixed(self) -> PartialMatching:
@@ -155,8 +174,20 @@ def chromosome_components(patient: PatientRecord) -> tuple[tuple[int, ...], ...]
     return tuple(tuple(sorted(groups[root])) for root in ordered)
 
 
-def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
-    """Θ, end sites and observed rejoins for ``chromosomes`` (a union of components)."""
+def convert(
+    patient: PatientRecord, chromosomes, convention: str = DEFAULT_CONVENTION
+) -> PatientConfiguration:
+    """Θ, end sites and observed rejoins for ``chromosomes`` (a union of components).
+
+    ``convention`` maps strand signs to DSB ends: ``"baca"`` (default, correct)
+    or ``"sheth2026"`` (the paper's reversed mapping); see the module docstring.
+    """
+    if convention not in STRAND_CONVENTIONS:
+        raise ConversionError(
+            f"Unknown strand convention {convention!r}; "
+            f"choose one of {sorted(STRAND_CONVENTIONS)}."
+        )
+    side_of = STRAND_CONVENTIONS[convention]
     chosen = tuple(sorted(set(int(c) for c in chromosomes)))
     if not chosen:
         raise ConversionError("No chromosomes selected.")
@@ -194,7 +225,7 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
     used: dict[int, StructuralVariant] = {}
     observed = []
     for v in variants:
-        pair = tuple(_end_of(index, b) for b in v.breakpoints)
+        pair = tuple(_end_of(index, b, side_of) for b in v.breakpoints)
         for end in pair:
             if end in used:
                 raise ConversionError(
@@ -217,7 +248,13 @@ def convert(patient: PatientRecord, chromosomes) -> PatientConfiguration:
                 "kept as separate DSBs (the reference code would merge their vertices)."
             )
     return PatientConfiguration(
-        patient.patient_id, chosen, theta, ends, tuple(observed), tuple(notes)
+        patient.patient_id,
+        chosen,
+        theta,
+        ends,
+        tuple(observed),
+        tuple(notes),
+        convention,
     )
 
 
@@ -237,6 +274,8 @@ def _distinct_breakpoints(patient: PatientRecord, chromosomes) -> list[tuple[int
     )
 
 
-def _end_of(index: dict[tuple[int, int], int], b: Breakpoint) -> int:
+def _end_of(
+    index: dict[tuple[int, int], int], b: Breakpoint, side_of: dict[str, int]
+) -> int:
     j = index[(b.chromosome, b.position)]
-    return 2 * j + 1 if b.strand == "+" else 2 * j
+    return 2 * j + side_of[b.strand]

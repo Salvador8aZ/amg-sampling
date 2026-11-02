@@ -145,14 +145,42 @@ def test_conversion_of_two_linked_chromosomes(synthetic):
         (1, 100, "left"),
         (1, 100, "right"),
     ]
-    # '+' uses the right end, '-' the left end.
+    # Baca convention: '+' uses the left end, '-' the right end.
     pairs = [(e.end_a, e.end_b) for e in pc.observed]
-    assert pairs == [(1, 6), (2, 5)]
+    assert pairs == [(0, 7), (3, 4)]
     assert all(e.status is EdgeStatus.OBSERVED for e in pc.observed)
     assert pc.observed[0].variant.source_line == 2
-    assert pc.free_ends == (0, 3, 4, 7)
+    assert pc.free_ends == (1, 2, 5, 6)
     assert pc.reconstructed_matching() is None
     assert pc.ends[5].label() == "chr1:700 (right)"
+    assert pc.convention == "baca"
+
+
+def test_sheth2026_convention_is_the_baca_one_with_every_end_flipped(synthetic):
+    baca = convert(synthetic["SYN-1"], (1, 2))
+    sheth = convert(synthetic["SYN-1"], (1, 2), convention="sheth2026")
+    assert sheth.convention == "sheth2026"
+    assert [(e.end_a, e.end_b) for e in sheth.observed] == [(1, 6), (2, 5)]
+    assert [(e.end_a ^ 1, e.end_b ^ 1) for e in baca.observed] == [
+        (e.end_a, e.end_b) for e in sheth.observed
+    ]
+    assert sheth.theta == baca.theta
+
+
+def test_deletion_junction_joins_the_outer_flanks(synthetic):
+    # SYN-2 is a (+, -) junction: Baca's "potential deletion" shape. The DNA left
+    # of the first break is fused to the DNA right of the second; the middle
+    # piece (ends 1 and 2) is not in the junction.
+    pc = convert(synthetic["SYN-2"], [5])
+    ((a, b),) = [(e.end_a, e.end_b) for e in pc.observed]
+    assert (pc.ends[a].side, pc.ends[a].position) == ("left", 1000)
+    assert (pc.ends[b].side, pc.ends[b].position) == ("right", 2000)
+    assert pc.free_ends == (1, 2)
+
+
+def test_unknown_strand_convention_is_an_error(synthetic):
+    with pytest.raises(ConversionError, match="Unknown strand convention"):
+        convert(synthetic["SYN-1"], (1, 2), convention="dranger")
 
 
 def test_unique_completion_is_marked_as_reconstructed(synthetic):
@@ -160,7 +188,7 @@ def test_unique_completion_is_marked_as_reconstructed(synthetic):
     matching, inferred = pc.reconstructed_matching()
     assert matching.pairs() == ((0, 3), (1, 2))
     assert [(e.end_a, e.end_b, e.status) for e in inferred] == [
-        (0, 3, EdgeStatus.UNIQUE_COMPLETION)
+        (1, 2, EdgeStatus.UNIQUE_COMPLETION)
     ]
     assert str(cycle_structure(pc.theta, matching)) == "C2"
 
@@ -176,7 +204,7 @@ def test_end_used_twice_is_an_error(synthetic):
 def test_same_position_on_both_strands_is_one_dsb_with_both_ends_used(synthetic):
     pc = convert(synthetic["SYN-4"], [6, 7])
     assert pc.theta.breaks == (2, 1)  # chr6: 50, 51; chr7: 80
-    assert sorted(v for e in pc.observed for v in (e.end_a, e.end_b)) == [0, 1, 2, 5]
+    assert sorted(v for e in pc.observed for v in (e.end_a, e.end_b)) == [0, 1, 3, 4]
     assert any("adjacent" in note for note in pc.notes)
 
 
@@ -264,10 +292,15 @@ def test_real_conversion_of_p05_1657_matches_fixture():
     patient = load_dataset(REAL).patients["P05-1657"]
     assert chromosome_components(patient) == tuple(P05_1657)
     for component, spec in P05_1657.items():
-        pc = convert(patient, component)
+        # The fixture is the paper's figure 13, drawn with its reversed mapping.
+        pc = convert(patient, component, convention="sheth2026")
         assert pc.theta.breaks == spec["breaks"]
         # Edges follow row order, which differs between the known copies.
         assert sorted((e.end_a, e.end_b) for e in pc.observed) == sorted(
+            spec["observed"]
+        )
+        baca = convert(patient, component)
+        assert sorted((e.end_a ^ 1, e.end_b ^ 1) for e in baca.observed) == sorted(
             spec["observed"]
         )
 
