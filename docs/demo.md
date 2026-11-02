@@ -93,17 +93,20 @@ Show `outputs/<date>/<time>/observed_cycle_structures.png` and
 - **Main limitation:** the null is uniform. Real repair favours nearby ends
   and has biological structure. The numbers are a reference point, not a model
   of the cell. Also:
-  - the strand → end convention follows the original code;
+  - strand signs follow the source data's (dRanger) semantics, `+` = left
+    end; the paper's reversed mapping is `problem.strand_convention=sheth2026`
+    and gives the same cycle-structure counts;
   - exact PROPER results are limited to about 12 chromosomes (an `O(3^k)`
     recursion), after which only sampling is used.
-- **Why MCMC is future work, not needed now:** for the uniform target,
-  independent rejection sampling is already exact and fast, even at 80–100
-  breaks, with acceptance ≥ 0.1 in every case tested. MCMC becomes necessary
-  once the target is **non-uniform** (weights for biologically plausible
-  rejoins) or heavily constrained. Rejection from uniform proposals is then
-  inefficient or no longer correct. This IID sampler will then be the baseline
-  that any MCMC must reproduce.
+- **Why the project has three parts:** for the uniform target, independent
+  rejection sampling (Part I) is already exact and fast, even at 80–100
+  breaks, with acceptance ≥ 0.1 in every case tested. A **non-uniform** target
+  (weights for biologically plausible rejoins) or a heavily constrained one
+  needs MCMC (Part II). Rejection from uniform proposals is then inefficient or
+  no longer correct, so Part I is the baseline that the chain must reproduce
+  at α = 0. Part III recasts the count as a partition function, so that
+  quantum Monte Carlo (Montanaro 2015) can estimate it with fewer samples.
 - **Next:**
-  - the paper's reversal moves;
-  - a weighted rejoining model;
-  - MCMC and ABC-SMC for inferring model parameters from patients.
+  - per-patient proximity models and ABC-SMC for inferring their parameters (Part II);
+  - the walk reflections and circuit-level experiments (Part III);
+  - the paper's reversal networks.

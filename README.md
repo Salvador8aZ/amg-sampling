@@ -7,11 +7,25 @@ the graph model of chromosome rearrangements used by
 > aberration pathways using multigraphs.* J. Phys. A: Math. Theor. **59** 115601.
 > https://doi.org/10.1088/1751-8121/ae4d8f
 
-The software reproduces the paper's published counts. It extends them from
+The long-term goal is to **enumerate AMGs with quantum computing**. The
+project gets there in three parts, built on one shared exact-combinatorics
+core:
+
+| Part | Role | Entry point | Status |
+|---|---|---|---|
+| **I. IID sampling** | The base case: exactly uniform, independent AMGs (the combinatorial null), checked against exact counts | `sampler=iid` | Implemented; validated up to n = 80 |
+| **II. MCMC with proximity weights** | The proposed sampler when biological restrictions make the target non-uniform and rejection sampling stops working | `sampler=mcmc target=proximity` | Implemented; validated against exact weighted enumeration |
+| **III. Quantum annealing** | Counting PROPER AMGs as a Montanaro (2015) partition-function problem: the route to a quantum speedup | `scripts/quantum_annealing.py` (on the `quantum` branch) | Exact small-n emulation |
+
+Each part is checked against the one before it: the exact results check IID,
+IID checks MCMC at α = 0, and the exact energy histogram checks the
+annealing schedule.
+
+The shared core reproduces the paper's published counts and extends them from
 small cases, where every configuration can be listed, to realistic sizes
-(80+ double-strand breaks) by exact formulas and independent random
-sampling. It also compares a patient's observed rearrangements with a
-uniform combinatorial null model.
+(80+ double-strand breaks) by exact formulas. It also turns a patient's
+observed rearrangements into Θ plus observed rejoins, so every part can be run
+on real data.
 
 ## The scientific question
 
@@ -39,13 +53,54 @@ formulas or sampling.
 
 ## What the software does
 
+### Shared core
+
 | Capability | How |
 |---|---|
 | **Exact combinatorial analysis** | Enumerates every AMG for small n, and applies the paper's theorems plus derived formulas and recursions for any n. Reproduces every row of the paper's tables 1–3. |
-| **Uniform IID sampling** | Draws uniform random rejoin matchings and keeps those in the chosen state space (ALL, DERANGED or PROPER). The samples are exactly uniform and independent: no Markov chain, burn-in or autocorrelation. Validated against the exact results, including at n = 80. |
 | **Synthetic configurations** | Any Θ, e.g. five chromosomes with 20 DSBs each. |
 | **Sheth patient reconstruction** | Loads the dataset used in the paper, splits each patient into chromosome components, and builds Θ and the observed rejoins with provenance. Reproduces the paper's case study (patient P05-1657: 945 pathways, table 2). |
 | **Patient vs null comparison** | Compares the patient's observed rejoins and the cycle structures compatible with them against the uniform combinatorial null. Exact values are used where feasible, sampled estimates with standard errors otherwise. |
+
+### Part I: IID sampling (base case)
+
+Draws uniform random rejoin matchings and keeps those in the chosen state space
+(ALL, DERANGED or PROPER). The samples are exactly uniform and independent: no
+Markov chain, burn-in or autocorrelation. With observed rejoins, only the
+unmatched ends are drawn. Validated against the exact results at the state,
+distribution and acceptance-rate levels, including at n = 80
+([docs/theory/sampling.md](docs/theory/sampling.md)).
+
+### Part II: MCMC with proximity weights (biological restrictions)
+
+Uniform rejection sampling is exact, but it cannot sample a **non-uniform**
+target. Biology gives such a target, because repair favours nearby ends. Part
+II is a Markov chain whose moves are 2-switches: two junctions re-pair their
+ends, the combinatorial analogue of an inversion.
+
+- **Target.** `target=proximity` weights each rejoin by
+  `(distance / scale_bp)^(−α)` within a chromosome, and by
+  `exp(inter_log_weight)` between chromosomes. `α = 0` gives back the
+  uniform null, and the chain then reproduces Part I.
+- **Calibration.** α and the inter-chromosomal weight are fitted to the Baca
+  et al. junctions on a train/test split of patients
+  (`analysis/calibration.py`, `scripts/biological_toy.py`).
+- **Validation.** Detailed balance of the exact kernel, and agreement with
+  exact weighted enumeration (`exact/weighted.py`). Standard errors use batch
+  means and an effective sample size
+  ([docs/theory/mcmc.md](docs/theory/mcmc.md)).
+
+### Part III: quantum annealing (towards quantum enumeration)
+
+`|PROPER(Θ)|` is the ground-state count `Z(∞)` of a defect Hamiltonian on all
+AMGs. It is estimated by a telescoping product of ratios along a
+B-Chebyshev cooling schedule, with each ratio estimated by amplitude
+estimation (Montanaro 2015, §3). The walk operators are the Part II 2-switch
+chain at each temperature. The code emulates the ideal algorithm exactly for
+small Θ: partition function, schedule, overlaps, relaxation times, and
+classical-vs-quantum error scaling. It lives on the `quantum` branch
+(`amg_sampling/quantum.py`, `scripts/quantum_annealing.py`,
+`docs/theory/quantum.md`); `git checkout quantum` to use it.
 
 ## Installation
 
@@ -87,34 +142,56 @@ make data   # = poetry run amg-sampling fetch-data
 ## Quick start
 
 ```bash
-# 1. Run the test suite (about 1 minute; patient tests skip if the data are absent)
+# Shared: run the test suite (about 2 minutes; patient tests skip if the data are absent)
 make test
 
-# 2. A synthetic configuration: Θ(5,(20,20,20,20,20)), 100 DSBs, 200 free ends
-poetry run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
-    statespace=proper sampler=iid sampler.num_samples=100000 analysis=distribution seed=42
-
-# 3. List the patients in the Sheth dataset, then inspect the demonstration patient
+# Shared: list the patients in the Sheth dataset, then inspect the demonstration patient
 poetry run amg-sampling patients
 poetry run amg-sampling patients --patient P05-1657
 
-# 4. The demonstration patient: chromosomes 8 and 12 of P05-1657 vs the uniform null
+# Shared: the demonstration patient, exact results only (no sampling)
+poetry run amg-sampling problem=patient analysis=observed sampler=exact
+```
+
+**Part I: IID (base case)**
+
+```bash
+# A synthetic configuration: Θ(5,(20,20,20,20,20)), 100 DSBs, 200 free ends
+poetry run amg-sampling problem=configuration problem.breaks='[20,20,20,20,20]' \
+    statespace=proper sampler=iid sampler.num_samples=100000 analysis=distribution seed=42
+
+# Chromosomes 8 and 12 of P05-1657 vs the uniform null
 poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=iid analysis=observed seed=42
 
-# 5. The same, exact results only (no sampling)
-poetry run amg-sampling problem=patient analysis=observed sampler=exact
+# Sampling throughput at n = 80
+poetry run python benchmarks/iid_n80.py
+```
 
-# 6. The same with the Markov chain (2-switch moves) instead of IID sampling
+**Part II: MCMC with proximity weights**
+
+```bash
+# The 2-switch chain with the uniform target: reproduces Part I
 poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=mcmc analysis=observed seed=42
 
-# 7. The Markov chain with a proximity-weighted target (alpha = 0 is uniform)
+# A proximity-weighted target (alpha = 0 is uniform)
 poetry run amg-sampling problem=patient problem.patient_id=P05-1657 problem.chromosomes='[8,12]' \
     statespace=proper sampler=mcmc target=proximity target.alpha=1.0 analysis=observed seed=42
+
+# Fit alpha and the inter-chromosomal weight to the Baca et al. junctions
+poetry run python scripts/biological_toy.py
 ```
 
-Command 2 takes about 15 s and command 4 about 3 s on a laptop.
+**Part III: quantum annealing** (on the `quantum` branch)
+
+```bash
+git checkout quantum
+poetry install --extras "plots quantum"
+poetry run python scripts/quantum_annealing.py
+```
+
+The synthetic IID run takes about 15 s and the patient IID run about 3 s on a laptop.
 [docs/demo.md](docs/demo.md) is a 5–10 minute walkthrough of these commands.
 
 ## Configuration
@@ -176,35 +253,42 @@ rearrangement is in a cell.
 
 ## Project status
 
-**Implemented**
+**Shared core (implemented)**
 - Exact mathematics: the AMG representation, exact enumeration, the paper's
   theorems, and derived formulas (exact PROPER distributions, cycle summaries
   for any n).
-- IID uniform sampling (rejection), validated at the state, distribution and
+- Patient data: Sheth/Baca dataset import, conversion with provenance and the
+  corrected strand convention, reproduction of the paper's case study, and
+  patient-vs-null comparison. Junction homology and foreign-sequence lengths
+  are reported with each observed rejoin.
+- Hydra experiments with saved JSON/CSV results and optional figures.
+
+**Part I: IID (implemented)**
+- Uniform rejection sampling, validated at the state, distribution and
   acceptance-rate levels, including at n = 80.
+
+**Part II: MCMC (implemented)**
 - The 2-switch (reversal-type) move, with its neighbour count and proposal
   symmetry proved, and connectivity of DERANGED and PROPER verified
   exhaustively for n ≤ 6.
-- MCMC with 2-switch moves (`sampler=mcmc`), validated against the exact
-  kernel and exact distributions, including the paper's P05-1657 table 2.
-- A one-parameter proximity target for the chain (`target=proximity`,
-  `target.alpha`): rejoins between nearby ends on a chromosome are favoured.
-  Validated by detailed balance of the exact kernel and against exact
-  weighted enumeration (`docs/theory/mcmc.md` §5).
-- Junction homology and foreign-sequence lengths read from the dataset and
-  reported with each observed rejoin.
-- Hydra experiments with saved JSON/CSV results and optional figures.
-- Patient prototype: Sheth dataset import, conversion with provenance,
-  reproduction of the paper's case study, and patient-vs-null comparison.
+- The chain (`sampler=mcmc`), validated against the exact kernel and exact
+  distributions, including the paper's P05-1657 table 2.
+- The proximity target (`target=proximity`: α and an inter-chromosomal
+  weight), fitted to the Baca et al. junctions, validated by detailed balance
+  and against exact weighted enumeration (`docs/theory/mcmc.md` §5).
+
+**Part III: quantum annealing (`quantum` branch, emulation)**
+- The defect Hamiltonian, B-Chebyshev schedule, overlaps and relaxation times,
+  computed exactly for n ≤ 7. The ideal amplitude-estimation estimator is
+  emulated and compared with classical Monte Carlo.
 
 **Planned (not implemented)**
-- The paper's reversal networks (the graph of AMGs linked by reversals)
-- Further biological targets: chromosome territories (a separate
-  inter-chromosomal weight), junction sequence features, calibrated alpha
-- Several chains per run with convergence diagnostics (R̂)
-- ABC-SMC
-- MLflow experiment tracking
-- Quantum-circuit (PennyLane) experiments
+- Part II: per-patient (hierarchical) proximity models, junction sequence
+  features, several chains per run with R̂, and ABC-SMC for parameter inference.
+- Part III: the walk reflections and their errors (Montanaro theorems 3.4 and
+  3.5), and circuit-level experiments (e.g. PennyLane).
+- The paper's reversal networks (the graph of AMGs linked by reversals).
+- MLflow experiment tracking.
 
 ## Limitations
 
@@ -213,8 +297,12 @@ rearrangement is in a cell.
   k ≤ 6 and n ≤ 30. Beyond that, sampling (always available) is used.
 - Exact enumeration of the completions of observed rejoins is limited to
   about 2·10⁶ completions (16 unmatched ends). Beyond that they are sampled.
-- The strand → DSB-end convention follows the reference implementation. It
-  reproduces the paper, but its biological meaning is not independently checked.
+- Strand signs are mapped to DSB ends with the dRanger semantics of the source
+  data (Baca et al. 2013): `+` joins the DNA left of the break (the DSB's left
+  end), `-` the DNA right of it. Sheth et al. (2026) used the reverse mapping;
+  `problem.strand_convention=sheth2026` reproduces their figures. Cycle-structure
+  counts are the same under both; which ends are observed differs. See
+  [docs/data.md](docs/data.md#strand-convention).
 - Patients are analysed one chromosome component at a time, assuming no
   exchange between chromosomes that no observed junction links (paper §7.1).
 
@@ -225,10 +313,14 @@ rearrangement is in a cell.
 - [docs/theory/representation.md](docs/theory/representation.md): data model and state spaces.
 - [docs/theory/exact.md](docs/theory/exact.md): exact counts, the paper's
   theorems, and documented differences from the paper.
-- [docs/theory/sampling.md](docs/theory/sampling.md): uniform sampling,
+- [docs/theory/sampling.md](docs/theory/sampling.md) (Part I): uniform sampling,
   rejection, IID proofs, and fixed-rejoin completion.
-- [docs/theory/mcmc.md](docs/theory/mcmc.md): the 2-switch move, the Markov
-  chain, and standard errors for correlated samples.
+- [docs/theory/mcmc.md](docs/theory/mcmc.md) (Part II): the 2-switch move, the
+  Markov chain, standard errors for correlated samples, and the proximity
+  target and its calibration.
+- `docs/theory/quantum.md` (Part III, on the `quantum` branch): PROPER counting
+  as a Montanaro (2015) partition-function problem, with an exact small-n
+  emulation.
 
 Results in the theory notes are labelled PROVED, VERIFIED(n ≤ N) or CONJECTURE.
 
@@ -239,19 +331,20 @@ amg_sampling/
   __init__.py, _version.py   package version, read from the installed metadata
   directories.py             absolute paths to package, repository, data and test directories
   py.typed                   marks the package as typed for consumers
-  core/        Θ, rejoin matchings, cycle structures, state spaces (pure Python)
-  exact/       enumeration, formulas, summary distributions
-  samplers/    uniform matchings, completions, IID rejection sampling
-  data/sheth/  dataset records, loader, conversion to Θ + observed rejoins
-  analysis/    null-model analyses, report, JSON/CSV output, figures
+  core/        shared: Θ, rejoin matchings, cycle structures, state spaces, 2-switch moves
+  exact/       shared: enumeration, formulas, summaries; weighted.py (II): exact weighted references
+  samplers/    uniform.py, rejection.py (I): IID; mcmc.py, targets.py (II): chain, proximity target
+  data/sheth/  shared: dataset records, download, loader, conversion to Θ + observed rejoins
+  analysis/    shared: null-model analyses, report, JSON/CSV output, figures;
+               calibration.py (II): fitting the proximity target
   conf/        Hydra configuration groups
   app.py       Hydra application;  cli.py  command-line entry point
   tests/       pytest suite (exact oracles, statistical tests, CLI smoke tests)
     test_data/ synthetic fixtures (no real patient data)
 data/          repository-level data; external/ holds the dataset and is git-ignored
 notebooks/     Jupyter notebooks for exploration or documentation
-scripts/       development tooling (import_boundaries.py)
-benchmarks/    sampling throughput at n = 80
+scripts/       import_boundaries.py (tooling); biological_toy.py (II): proximity fit
+benchmarks/    iid_n80.py (I): sampling throughput at n = 80
 docs/          demo, data and theory notes
 .github/       continuous integration and Dependabot
 pyproject.toml project metadata, dependencies and tool configuration
