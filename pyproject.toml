@@ -19,7 +19,7 @@ classifiers = [
 # hydra-core and omegaconf are used only by the command-line application
 # (amg_sampling.app).
 dependencies = [
-    "hydra-core>=1.3",
+    "hydra-core>=1.3.8",
     "omegaconf>=2.3",
 ]
 
@@ -40,12 +40,12 @@ packages = [{ include = "amg_sampling" }]
 include = ["data/*", "README.md"]
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^9.1.1"
-coverage = "^7.16.0"
-ruff = "^0.16.7"
+pytest = "^9.2.0"
+coverage = "^7.17.1"
+ruff = "^0.17.3"
 vulture = "^2.16"
 deptry = "^0.25.1"
-hypothesis = "^6.168.1"
+hypothesis = "^6.170.14"
 # Used only as an independent reference implementation in tests.
 networkx = "^3.6"
 # Lets the figure tests run; consumers get it through the `plots` extra.
@@ -58,7 +58,7 @@ optional = true
 
 [tool.poetry.group.notebook.dependencies]
 jupyter = "^1.1.1"
-jupyterlab = "^4.6.3"
+jupyterlab = "^4.6.5"
 matplotlib = "^3.11.2"
 seaborn = "^0.13.2"
 
