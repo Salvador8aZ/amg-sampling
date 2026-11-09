@@ -22,6 +22,7 @@ import json
 import random
 from pathlib import Path
 
+from amg_sampling import directories
 from amg_sampling.analysis.calibration import (
     fit,
     log_likelihood,
@@ -43,7 +44,9 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--test-fraction", type=float, default=0.2)
     parser.add_argument("--samples", type=int, default=50_000)
-    parser.add_argument("--out", type=Path, default=Path("outputs/biological-toy"))
+    parser.add_argument(
+        "--out", type=Path, default=directories.base("outputs/biological-toy")
+    )
     args = parser.parse_args()
 
     dataset = load_dataset(default_data_path())
